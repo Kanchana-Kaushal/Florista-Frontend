@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -27,7 +29,7 @@ export const AuthProvider = ({ children }) => {
 
     setAuthToken(token);
     try {
-      const { data } = await axios.get('http://localhost:5000/api/auth/me'); // Assuming backend is on 5000
+      const { data } = await axios.get(`${API_URL}/auth/me`); // Assuming backend is on 5000
       setUser(data.user);
     } catch (error) {
       console.error("Authentication failed:", error);

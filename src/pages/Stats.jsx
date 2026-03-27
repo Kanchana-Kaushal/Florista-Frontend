@@ -15,6 +15,8 @@ import {
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function Stats() {
     const { user } = useContext(AuthContext);
     const [data, setData] = useState(null);
@@ -25,7 +27,7 @@ export default function Stats() {
         const fetchStats = async () => {
             setLoading(true);
             try {
-                const res = await axios.get(`http://localhost:5000/api/stats?monthOffset=${monthOffset}`);
+                const res = await axios.get(`${API_URL}/stats?monthOffset=${monthOffset}`);
                 setData(res.data);
             } catch (error) {
                 console.error("Failed to fetch stats", error);

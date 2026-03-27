@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { FiLock, FiUser, FiArrowRight } from 'react-icons/fi';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +19,7 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       // Assuming backend is on port 5000 based on standard setups, we can also use relative path if proxy is configured
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', { username, password });
+      const { data } = await axios.post(`${API_URL}/auth/login`, { username, password });
       
       // We pass the token to login, we can fetch user profile later or decode token
       login(data.token, { username });

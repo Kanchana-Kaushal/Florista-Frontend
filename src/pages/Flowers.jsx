@@ -3,6 +3,8 @@ import axios from 'axios';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiBox, FiLoader, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function Flowers() {
   const [flowers, setFlowers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ export default function Flowers() {
   const fetchFlowers = async (search = '') => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/flowers?search=${search}&limit=100`);
+      const res = await axios.get(`${API_URL}/flowers?search=${search}&limit=100`);
       setFlowers(res.data.data);
     } catch (error) {
       console.error("Failed to fetch flowers", error);
@@ -63,10 +65,10 @@ export default function Flowers() {
     e.preventDefault();
     try {
       if (editingFlower) {
-        await axios.put(`http://localhost:5000/api/flowers/${editingFlower._id}`, formData);
+        await axios.put(`${API_URL}/flowers/${editingFlower._id}`, formData);
         toast.success("Flower updated successfully!");
       } else {
-        await axios.post('http://localhost:5000/api/flowers', formData);
+        await axios.post(`${API_URL}/flowers`, formData);
         toast.success("Flower added successfully!");
       }
       handleCloseModal();
@@ -80,7 +82,7 @@ export default function Flowers() {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this flower?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/flowers/${id}`);
+        await axios.delete(`${API_URL}/flowers/${id}`);
         toast.success("Flower deleted successfully.");
         fetchFlowers(searchTerm);
       } catch (error) {
