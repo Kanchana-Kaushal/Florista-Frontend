@@ -187,12 +187,15 @@ export default function EditOrder() {
                                     </button>
                                     <div className="flex-1">
                                         <p className="font-bold text-slate-800 text-lg mb-1">{item.customProduct || item.flower?.name}</p>
-                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest bg-white inline-block px-2 py-0.5 rounded border border-slate-100">Cost: Rs. {item.cost || 0}</span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                                         <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Cost (Rs.)</label>
+                                            <input type="number" min="0" className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800" value={item.cost || ''} onChange={(e) => handleItemChange(index, 'cost', e.target.value)} />
+                                        </div>
+                                        <div>
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Price (Rs.)</label>
-                                            <input type="number" min="0" className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} />
+                                            <input type="number" min="0" className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800" value={item.price || ''} onChange={(e) => handleItemChange(index, 'price', e.target.value)} />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Qty</label>

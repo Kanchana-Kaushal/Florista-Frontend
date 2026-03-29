@@ -373,7 +373,7 @@ export default function Orders() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setDetailsOrder(null)}></div>
           <div className="relative flex flex-col w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden z-20 max-h-[90vh]">
-            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                   <FiShoppingBag size={20} />
@@ -388,7 +388,7 @@ export default function Orders() {
               </button>
             </div>
             
-            <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+            <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 min-h-0 space-y-6">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Details</p>
@@ -446,7 +446,7 @@ export default function Orders() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+            <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
               <button onClick={() => { setReceiptOrder(detailsOrder); setDetailsOrder(null); }} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
                 <FiPrinter size={18} /> View Receipt
               </button>
@@ -471,7 +471,7 @@ export default function Orders() {
             
             {/* The exactly matched Printable Bill Element */}
             <div className="w-full overflow-auto custom-scrollbar flex justify-center items-start bg-slate-100 p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-2xl relative z-10 max-h-[75vh]">
-                <div ref={billRef} className="bg-white p-6 sm:p-8 border border-slate-200 shadow-md print-friendly relative shrink-0 h-max" style={{ width: '450px' }}>
+                <div ref={billRef} className="bg-white p-6 sm:p-8 border border-slate-200 shadow-md print-friendly relative shrink-0 h-max w-full max-w-[450px]">
                     <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 
                     <div className="text-center mb-6 pt-2">

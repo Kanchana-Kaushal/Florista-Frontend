@@ -1,6 +1,22 @@
 import { useState, useContext } from "react";
-import { Routes, Route, Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { FiHome, FiInfo, FiPlus, FiShoppingBag, FiArchive, FiUsers, FiPieChart, FiLogOut } from "react-icons/fi";
+import {
+    Routes,
+    Route,
+    Link,
+    Outlet,
+    useLocation,
+    useNavigate,
+} from "react-router-dom";
+import {
+    FiHome,
+    FiInfo,
+    FiPlus,
+    FiShoppingBag,
+    FiArchive,
+    FiUsers,
+    FiPieChart,
+    FiLogOut,
+} from "react-icons/fi";
 import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Login from "./pages/Login.jsx";
@@ -46,25 +62,42 @@ function About() {
 
 function NavItem({ to, icon, label, exact = false, isFloating = false }) {
     const location = useLocation();
-    const isActive = exact ? location.pathname === to : location.pathname.startsWith(to) && to !== '/' || (to === '/' && location.pathname === '/');
+    const isActive = exact
+        ? location.pathname === to
+        : (location.pathname.startsWith(to) && to !== "/") ||
+          (to === "/" && location.pathname === "/");
 
     if (isFloating) {
         return (
-            <Link to={to} className="flex flex-col items-center justify-center -mt-6">
+            <Link
+                to={to}
+                className="flex flex-col items-center justify-center -mt-6"
+            >
                 <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-indigo-200 border-4 border-slate-50 relative z-10 transition-transform hover:scale-105 active:scale-95">
                     {icon}
                 </div>
-                <span className="text-[10px] font-bold text-indigo-700 mt-1">{label}</span>
+                <span className="text-[10px] font-bold text-indigo-700 mt-1">
+                    {label}
+                </span>
             </Link>
         );
     }
 
     return (
-        <Link to={to} className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-full transition-all text-sm sm:text-base font-medium ${isActive ? 'text-indigo-600 sm:bg-indigo-50 sm:border-indigo-100 sm:border shadow-sm sm:shadow-none' : 'text-slate-500 hover:text-indigo-500 hover:bg-slate-50'}`}>
-            <div className={`${isActive ? 'scale-110 sm:scale-100' : ''} transition-transform`}>
+        <Link
+            to={to}
+            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-full transition-all text-sm sm:text-base font-medium ${isActive ? "text-indigo-600 sm:bg-indigo-50 sm:border-indigo-100 sm:border shadow-sm sm:shadow-none" : "text-slate-500 hover:text-indigo-500 hover:bg-slate-50"}`}
+        >
+            <div
+                className={`${isActive ? "scale-110 sm:scale-100" : ""} transition-transform`}
+            >
                 {icon}
             </div>
-            <span className={`${isActive ? 'font-bold' : 'font-medium'} sm:block ${isFloating ? '' : 'text-[10px] sm:text-sm mt-0.5 sm:mt-0'}`}>{label}</span>
+            <span
+                className={`${isActive ? "font-bold" : "font-medium"} sm:block ${isFloating ? "" : "text-[10px] sm:text-sm mt-0.5 sm:mt-0"}`}
+            >
+                {label}
+            </span>
         </Link>
     );
 }
@@ -90,19 +123,43 @@ function Layout() {
                         </div>
                         <span className="hidden sm:inline">Florista ERP</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 sm:gap-4">
                         {/* Desktop Links (Hidden on mobile) */}
                         <div className="hidden sm:flex gap-2 lg:gap-4 items-center sm:border-r border-slate-200 sm:pr-4">
-                            <NavItem to="/" icon={<FiPieChart size={18} />} label="Dashboard" exact={true} />
-                            <NavItem to="/orders" icon={<FiShoppingBag size={18} />} label="Orders" />
-                            <NavItem to="/new-order" icon={<FiPlus size={18} />} label="New Order" />
-                            <NavItem to="/flowers" icon={<FiArchive size={18} />} label="Inventory" />
-                            <NavItem to="/buyers" icon={<FiUsers size={18} />} label="Buyers" />
+                            <NavItem
+                                to="/"
+                                icon={<FiPieChart size={18} />}
+                                label="Dashboard"
+                                exact={true}
+                            />
+                            <NavItem
+                                to="/orders"
+                                icon={<FiShoppingBag size={18} />}
+                                label="Orders"
+                            />
+                            <NavItem
+                                to="/new-order"
+                                icon={<FiPlus size={18} />}
+                                label="New Order"
+                            />
+                            <NavItem
+                                to="/flowers"
+                                icon={<FiArchive size={18} />}
+                                label="Inventory"
+                            />
+                            <NavItem
+                                to="/buyers"
+                                icon={<FiUsers size={18} />}
+                                label="Buyers"
+                            />
                         </div>
-                        
+
                         {/* Logout Button */}
-                        <button onClick={handleLogout} className="flex items-center gap-2 text-rose-500 hover:text-rose-700 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors text-sm sm:text-base select-none active:scale-95 border border-rose-100/50">
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 text-rose-500 hover:text-rose-700 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors text-sm sm:text-base select-none active:scale-95 border border-rose-100/50"
+                        >
                             <FiLogOut size={18} />
                             <span className="hidden sm:block">Logout</span>
                         </button>
@@ -120,11 +177,33 @@ function Layout() {
 
             {/* Mobile Bottom Tab Bar */}
             <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] z-50 flex justify-around items-end pt-2 pb-4 px-2 safe-bottom">
-                <NavItem to="/" icon={<FiPieChart size={22} />} label="Home" exact={true} />
-                <NavItem to="/orders" icon={<FiShoppingBag size={22} />} label="Orders" />
-                <NavItem to="/new-order" icon={<FiPlus size={28} />} label="New" isFloating={true} />
-                <NavItem to="/flowers" icon={<FiArchive size={22} />} label="Stock" />
-                <NavItem to="/buyers" icon={<FiUsers size={22} />} label="Buyers" />
+                <NavItem
+                    to="/"
+                    icon={<FiPieChart size={22} />}
+                    label="Home"
+                    exact={true}
+                />
+                <NavItem
+                    to="/orders"
+                    icon={<FiShoppingBag size={22} />}
+                    label="Orders"
+                />
+                <NavItem
+                    to="/new-order"
+                    icon={<FiPlus size={28} />}
+                    label="New"
+                    isFloating={true}
+                />
+                <NavItem
+                    to="/flowers"
+                    icon={<FiArchive size={22} />}
+                    label="Stock"
+                />
+                <NavItem
+                    to="/buyers"
+                    icon={<FiUsers size={22} />}
+                    label="Buyers"
+                />
             </div>
         </div>
     );
@@ -139,7 +218,10 @@ function App() {
                     <Route element={<Layout />}>
                         <Route path="/" element={<Stats />} />
                         <Route path="/new-order" element={<NewOrder />} />
-                        <Route path="/confirm-order" element={<OrderConfirmation />} />
+                        <Route
+                            path="/confirm-order"
+                            element={<OrderConfirmation />}
+                        />
                         <Route path="/orders" element={<Orders />} />
                         <Route path="/edit-order/:id" element={<EditOrder />} />
                         <Route path="/settle" element={<SettleOrders />} />
