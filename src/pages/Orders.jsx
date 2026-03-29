@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiPrinter, FiCheck, FiDownload, FiX, FiLoader, FiShoppingBag } from 'react-icons/fi';
+import { FiSearch, FiPrinter, FiCheck, FiDownload, FiX, FiLoader, FiShoppingBag, FiMoreVertical, FiEdit, FiTrash2, FiEye, FiDollarSign } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { toPng } from 'html-to-image';
 
@@ -18,9 +18,22 @@ export default function Orders() {
   const [settledFilter, setSettledFilter] = useState(''); // '' = all, 'true' = settled, 'false' = unsettled
   const [selectedOrders, setSelectedOrders] = useState([]);
 
-  // Modal
+  // Modal & Menus
   const [receiptOrder, setReceiptOrder] = useState(null);
+  const [detailsOrder, setDetailsOrder] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null);
   const billRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.options-dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchOrders = async (searchTerm = search, paid = paidFilter, settled = settledFilter) => {
     setLoading(true);
@@ -52,6 +65,17 @@ export default function Orders() {
       setSelectedOrders(selectedOrders.filter(o => o._id !== order._id));
     } else {
       setSelectedOrders([...selectedOrders, order]);
+    }
+  };
+
+  const handleDelete = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+    try {
+      await axios.delete(`${API_URL}/orders/${orderId}`);
+      toast.success("Order deleted successfully");
+      fetchOrders();
+    } catch (error) {
+      toast.error("Failed to delete order");
     }
   };
 
@@ -182,7 +206,14 @@ export default function Orders() {
                   {orders.map((order) => {
                     const isSelected = !!selectedOrders.find(o => o._id === order._id);
                     return (
-                      <tr key={order._id} className={`hover:bg-indigo-50/30 transition-colors group ${isSelected ? 'bg-indigo-50' : ''}`}>
+                      <tr 
+                        key={order._id} 
+                        onClick={(e) => {
+                          if (e.target.closest('input[type="checkbox"]') || e.target.closest('button') || e.target.closest('.options-dropdown-container')) return;
+                          setDetailsOrder(order);
+                        }}
+                        className={`hover:bg-indigo-50/30 transition-colors group cursor-pointer ${isSelected ? 'bg-indigo-50' : ''}`}
+                      >
                         <td className="p-5 pl-6">
                           <input 
                             type="checkbox" 
@@ -225,23 +256,39 @@ export default function Orders() {
                             </span>
                           )}
                         </td>
-                        <td className="p-5 pr-6 text-right space-x-2 whitespace-nowrap">
+                        <td className="p-5 pr-6 text-right space-x-2 whitespace-nowrap relative options-dropdown-container">
                           {!order.paid && (
                             <button 
                               onClick={() => handleMarkPaid(order._id)}
-                              className="px-3 py-1.5 text-emerald-600 font-bold hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200 text-xs"
+                              className="px-3 py-1.5 text-emerald-600 font-bold hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200 text-xs shadow-sm"
                               title="Mark Paid"
                             >
                               $ Pay
                             </button>
                           )}
                           <button 
-                            onClick={() => setReceiptOrder(order)}
-                            className="px-3 py-1.5 text-indigo-600 font-bold hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 inline-flex items-center gap-1 text-xs"
-                            title="Receipt"
+                            onClick={() => setOpenDropdown(openDropdown === order._id ? null : order._id)}
+                            className="px-2 py-1.5 text-slate-600 font-bold hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 inline-flex items-center gap-1 text-xs shadow-sm"
                           >
-                            <FiPrinter /> View
+                            Options <FiMoreVertical />
                           </button>
+                          
+                          {openDropdown === order._id && (
+                            <div className="absolute right-6 top-10 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 text-left">
+                              <button 
+                                onClick={() => { setOpenDropdown(null); navigate(`/edit-order/${order._id}`); }}
+                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2 font-medium"
+                              >
+                                <FiEdit /> Edit
+                              </button>
+                              <button 
+                                onClick={() => { setOpenDropdown(null); handleDelete(order._id); }}
+                                className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium"
+                              >
+                                <FiTrash2 /> Delete
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -255,7 +302,14 @@ export default function Orders() {
               {orders.map((order) => {
                 const isSelected = !!selectedOrders.find(o => o._id === order._id);
                 return (
-                  <div key={order._id} className={`p-4 flex flex-col gap-3 transition-colors ${isSelected ? 'bg-indigo-50 border-l-4 border-indigo-500' : 'bg-white border-l-4 border-transparent'}`}>
+                  <div 
+                    key={order._id} 
+                    onClick={(e) => {
+                      if (e.target.closest('input[type="checkbox"]') || e.target.closest('button') || e.target.closest('.options-dropdown-container')) return;
+                      setDetailsOrder(order);
+                    }}
+                    className={`p-4 flex flex-col gap-3 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50 border-l-4 border-indigo-500' : 'bg-white border-l-4 border-transparent'}`}
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-3">
                         <input 
@@ -281,11 +335,28 @@ export default function Orders() {
                         {order.paid ? <span className="px-2.5 py-1 rounded-md text-[10px] uppercase font-black tracking-wide bg-emerald-100 text-emerald-700 inline-flex items-center justify-center">Paid</span> : <span className="px-2.5 py-1 rounded-md text-[10px] uppercase font-black tracking-wide bg-rose-100 text-rose-700 inline-flex items-center justify-center">Unpaid</span>}
                         {order.settled ? <span className="px-2.5 py-1 rounded-md text-[10px] uppercase font-black tracking-wide bg-blue-100 text-blue-700 inline-flex items-center justify-center">Settled</span> : <span className="px-2.5 py-1 rounded-md text-[10px] uppercase font-black tracking-wide bg-amber-100 text-amber-700 inline-flex items-center justify-center">Pending</span>}
                       </div>
-                      <div className="flex gap-2 isolate">
+                      <div className="flex gap-2 isolate relative options-dropdown-container">
                         {!order.paid && (
                           <button onClick={() => handleMarkPaid(order._id)} className="px-4 py-2 text-emerald-600 font-bold bg-emerald-50 rounded-xl transition-colors border border-emerald-200 text-xs shadow-sm active:scale-95"> Pay</button>
                         )}
-                        <button onClick={() => setReceiptOrder(order)} className="px-4 py-2 text-indigo-600 font-bold bg-indigo-50 rounded-xl transition-colors border border-indigo-200 flex items-center gap-1.5 text-xs shadow-sm active:scale-95"><FiPrinter size={14} /> Receipt</button>
+                        <button onClick={() => setOpenDropdown(openDropdown === order._id ? null : order._id)} className="px-3 py-2 text-slate-600 font-bold bg-slate-50 rounded-xl transition-colors border border-slate-200 flex items-center gap-1.5 text-xs shadow-sm active:scale-95"> Options <FiMoreVertical size={14} /></button>
+                        
+                        {openDropdown === order._id && (
+                          <div className="absolute right-0 bottom-full mb-2 w-32 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 text-left">
+                            <button 
+                              onClick={() => { setOpenDropdown(null); navigate(`/edit-order/${order._id}`); }}
+                              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2 font-medium"
+                            >
+                              <FiEdit /> Edit
+                            </button>
+                            <button 
+                              onClick={() => { setOpenDropdown(null); handleDelete(order._id); }}
+                              className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium"
+                            >
+                              <FiTrash2 /> Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -296,6 +367,93 @@ export default function Orders() {
           )}
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      {detailsOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setDetailsOrder(null)}></div>
+          <div className="relative flex flex-col w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden z-20 max-h-[90vh]">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <FiShoppingBag size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800 leading-tight">Order Details</h2>
+                  <p className="text-xs font-mono text-slate-500">{detailsOrder.orderId}</p>
+                </div>
+              </div>
+              <button onClick={() => setDetailsOrder(null)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Buyer Details</p>
+                  <p className="font-semibold text-slate-800 text-base">{detailsOrder.buyer?.name || 'Unknown'}</p>
+                  {detailsOrder.buyer?.businessName && <p className="text-xs font-medium text-slate-500">{detailsOrder.buyer.businessName}</p>}
+                  <p className="text-sm mt-2 text-slate-600 flex items-center gap-2">{detailsOrder.buyer?.telephone || 'No Phone'}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order Summary</p>
+                  <div className="flex justify-between mb-1"><span className="text-slate-500">Date</span><span className="font-medium text-slate-700">{new Date(detailsOrder.createdAt).toLocaleDateString()}</span></div>
+                  <div className="flex justify-between mb-1"><span className="text-slate-500">Total</span><span className="font-bold text-indigo-600">{formatCurrency(detailsOrder.totalAmount)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Status</span><span>{detailsOrder.paid ? <span className="text-emerald-600 font-bold">Paid</span> : <span className="text-rose-600 font-bold">Unpaid</span>}</span></div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 pl-1 flex justify-between items-end">
+                  <span>Order Items</span>
+                  <span className="text-xs font-medium text-slate-500 lowercase bg-slate-100 px-2 py-0.5 rounded-md">{detailsOrder.items.length} items</span>
+                </h3>
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm text-sm">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Item</th>
+                        <th className="px-4 py-3 font-semibold text-right">Cost</th>
+                        <th className="px-4 py-3 font-semibold text-right">Price</th>
+                        <th className="px-4 py-3 font-semibold text-right">Qty</th>
+                        <th className="px-4 py-3 font-semibold text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {detailsOrder.items.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-3 font-medium text-slate-700">{item.customProduct || item.flower?.name || 'Item'}</td>
+                          <td className="px-4 py-3 text-right text-slate-500">{formatCurrency(item.cost)}</td>
+                          <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(item.price)}</td>
+                          <td className="px-4 py-3 text-right font-medium text-slate-700">{item.qty}</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-800">{formatCurrency(item.price * item.qty)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-indigo-900 flex items-center gap-2"><FiDollarSign /> Potential Profit</p>
+                  <p className="text-xs text-indigo-600/70 mt-1">Calculated as (Selling Price - Cost) × Quantity</p>
+                </div>
+                <div className="text-2xl font-black text-emerald-600">
+                  {formatCurrency(detailsOrder.items.reduce((sum, item) => sum + (((item.price || 0) - (item.cost || 0)) * item.qty), 0))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => { setReceiptOrder(detailsOrder); setDetailsOrder(null); }} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                <FiPrinter size={18} /> View Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Receipt View Modal */}
       {receiptOrder && (

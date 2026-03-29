@@ -9,6 +9,7 @@ import Flowers from "./pages/Flowers.jsx";
 import NewOrder from "./pages/NewOrder.jsx";
 import OrderConfirmation from "./pages/OrderConfirmation.jsx";
 import Orders from "./pages/Orders.jsx";
+import EditOrder from "./pages/EditOrder.jsx";
 import SettleOrders from "./pages/SettleOrders.jsx";
 import Buyers from "./pages/Buyers.jsx";
 import toast from "react-hot-toast";
@@ -140,6 +141,7 @@ function App() {
                         <Route path="/new-order" element={<NewOrder />} />
                         <Route path="/confirm-order" element={<OrderConfirmation />} />
                         <Route path="/orders" element={<Orders />} />
+                        <Route path="/edit-order/:id" element={<EditOrder />} />
                         <Route path="/settle" element={<SettleOrders />} />
                         <Route path="/flowers" element={<Flowers />} />
                         <Route path="/buyers" element={<Buyers />} />
