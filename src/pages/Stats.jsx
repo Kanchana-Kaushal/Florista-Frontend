@@ -79,6 +79,11 @@ export default function Stats() {
         salesByLocation?.length > 0
             ? Math.max(...salesByLocation.map((l) => l.totalSales))
             : 1;
+    // Max gross profit for flower profit bar (#14)
+    const maxFlowerProfit =
+        topFlowers?.length > 0
+            ? Math.max(...topFlowers.map((f) => f.grossProfit || 0), 1)
+            : 1;
 
     const calculateTrend = (current, average) => {
         if (!average || average === 0) return null;
@@ -86,6 +91,19 @@ export default function Stats() {
         const percentage = ((diff / average) * 100).toFixed(1);
         return { isPositive: diff >= 0, percentage: percentage };
     };
+
+    // #12: Month-over-month comparison using previousMonth data from API
+    const calcMoM = (current, previous) => {
+        if (!previous || previous === 0) return null;
+        const diff = current - previous;
+        const pct = ((diff / previous) * 100).toFixed(1);
+        return { isPositive: diff >= 0, percentage: Math.abs(pct), label: 'vs last mo.' };
+    };
+
+    const prevMonth = data.previousMonth || {};
+    const salesMoM   = calcMoM(overview.totalSales, prevMonth.totalSales);
+    const profitMoM  = calcMoM(overview.totalProfit, prevMonth.totalProfit);
+    const ordersMoM  = calcMoM(overview.fulfilledOrders, prevMonth.totalOrders);
 
     const salesTrend = data.historicalAverages
         ? calculateTrend(
@@ -188,6 +206,7 @@ export default function Stats() {
                             value={formatCurrency(overview.totalSales)}
                             subtitle={revenueSubtitle}
                             trend={salesTrend}
+                            mom={salesMoM}
                             icon={FiDollarSign}
                             color="indigo"
                             gradient="from-indigo-500/10 to-transparent"
@@ -201,6 +220,7 @@ export default function Stats() {
                                     : undefined
                             }
                             trend={profitTrend}
+                            mom={profitMoM}
                             icon={FiTrendingUp}
                             color="emerald"
                             gradient="from-emerald-500/10 to-transparent"
@@ -213,6 +233,7 @@ export default function Stats() {
                                     ? `Avg. Rs. ${Math.round(aov)} per order`
                                     : undefined
                             }
+                            mom={ordersMoM}
                             icon={FiShoppingBag}
                             color="blue"
                             gradient="from-blue-500/10 to-transparent"
@@ -296,44 +317,60 @@ export default function Stats() {
 
                     {/* Charts Row */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                        {/* Top Flowers CSS Chart */}
+                        {/* Top Flowers CSS Chart — with profit margin (#14) */}
                         <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
-                            <h3 className="text-xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+                            <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
                                 <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                                     <FiBarChart2 />
                                 </span>
                                 Top Selling Flowers
                             </h3>
-                            <div className="flex-1 w-full space-y-6">
+                            <p className="text-xs text-slate-400 font-semibold mb-6 ml-1">Revenue · Profit margin · Units sold</p>
+                            <div className="flex-1 w-full space-y-5">
                                 {topFlowers && topFlowers.length > 0 ? (
                                     topFlowers.map((flower, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="group relative"
-                                        >
-                                            <div className="flex justify-between items-end mb-2">
-                                                <span className="font-bold text-slate-700 text-sm">
-                                                    {flower.name}
-                                                </span>
-                                                <span className="font-black text-slate-900 text-sm sm:text-base">
-                                                    {formatCurrency(
-                                                        flower.totalRevenue,
+                                        <div key={idx} className="group relative">
+                                            <div className="flex justify-between items-end mb-1.5">
+                                                <span className="font-bold text-slate-700 text-sm">{flower.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    {/* #14: Profit margin badge */}
+                                                    {flower.profitMarginPct !== undefined && (
+                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                                            flower.profitMarginPct >= 30
+                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                : flower.profitMarginPct >= 15
+                                                                ? 'bg-amber-100 text-amber-700'
+                                                                : 'bg-rose-100 text-rose-700'
+                                                        }`}>
+                                                            {flower.profitMarginPct.toFixed(1)}% margin
+                                                        </span>
                                                     )}
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden flex relative">
-                                                {/* Gradient Animated Bar */}
-                                                <div
-                                                    className="bg-linear-to-r from-indigo-400 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm group-hover:to-indigo-500"
-                                                    style={{
-                                                        width: `${(flower.totalRevenue / maxFlowerRevenue) * 100}%`,
-                                                    }}
-                                                >
-                                                    <div className="absolute inset-0 bg-white/20 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                    <span className="font-black text-slate-900 text-sm sm:text-base">
+                                                        {formatCurrency(flower.totalRevenue)}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <p className="text-left text-xs text-slate-400 mt-1.5 font-medium">
-                                                {flower.totalQtySold} units sold
+                                            {/* Revenue bar */}
+                                            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex relative mb-1">
+                                                <div
+                                                    className="bg-linear-to-r from-indigo-400 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm"
+                                                    style={{ width: `${(flower.totalRevenue / maxFlowerRevenue) * 100}%` }}
+                                                />
+                                            </div>
+                                            {/* #14: Profit bar (overlaid as a secondary bar) */}
+                                            {flower.grossProfit !== undefined && (
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden flex relative">
+                                                    <div
+                                                        className="bg-linear-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000 ease-out"
+                                                        style={{ width: `${Math.max(0, (flower.grossProfit / maxFlowerProfit) * 100)}%` }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <p className="text-left text-xs text-slate-400 mt-1.5 font-medium flex gap-3">
+                                                <span>{flower.totalQtySold} units sold</span>
+                                                {flower.grossProfit !== undefined && (
+                                                    <span className="text-emerald-500">Profit: {formatCurrency(flower.grossProfit)}</span>
+                                                )}
                                             </p>
                                         </div>
                                     ))
@@ -626,6 +663,7 @@ function AnimatedMetricCard({
     gradient,
     isAlert = false,
     trend,
+    mom,
 }) {
     const colorStyles = {
         indigo: "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white border-indigo-100",
@@ -660,14 +698,23 @@ function AnimatedMetricCard({
             <div className="mt-6 relative z-10 flex-1 flex flex-col justify-end">
                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex justify-between items-center gap-1">
                     <span className="truncate">{title}</span>
-                    {trend && (
+                    {/* Show MoM badge if available (#12), otherwise show avg trend */}
+                    {mom ? (
+                        <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                                mom.isPositive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                            }`}
+                        >
+                            {mom.isPositive ? "↑" : "↓"} {mom.percentage}% {mom.label}
+                        </span>
+                    ) : trend ? (
                         <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1 whitespace-nowrap shrink-0 ${trend.isPositive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
                         >
                             {trend.isPositive ? "↑" : "↓"}{" "}
                             {Math.abs(trend.percentage)}% avg
                         </span>
-                    )}
+                    ) : null}
                 </p>
                 <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-1 wrap-break-word">
                     {value}

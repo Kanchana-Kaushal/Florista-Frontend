@@ -122,6 +122,9 @@ export default function Orders() {
             const dataUrl = await toPng(billRef.current, {
                 cacheBust: true,
                 backgroundColor: "#ffffff",
+                width: billRef.current.scrollWidth,
+                height: billRef.current.scrollHeight,
+                pixelRatio: 2,
             });
             const link = document.createElement("a");
             link.download = `Receipt_${receiptOrder.orderId}.png`;
@@ -804,10 +807,11 @@ export default function Orders() {
                         </div>
 
                         {/* The exactly matched Printable Bill Element */}
-                        <div className="w-full overflow-auto custom-scrollbar flex justify-center items-start bg-slate-100 p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-2xl relative z-10 max-h-[75vh]">
+                        <div className="w-full overflow-auto custom-scrollbar flex justify-start items-start bg-slate-100 p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-2xl relative z-10 max-h-[75vh]">
                             <div
                                 ref={billRef}
-                                className="bg-white p-6 sm:p-8 border border-slate-200 shadow-md print-friendly relative shrink-0 h-max w-full max-w-[450px]"
+                                style={{ width: "450px", minWidth: "450px" }}
+                                className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
                             >
                                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 

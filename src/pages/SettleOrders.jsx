@@ -93,6 +93,9 @@ export default function SettleOrders() {
             const dataUrl = await toPng(billRef.current, {
                 cacheBust: true,
                 backgroundColor: "#ffffff",
+                width: billRef.current.scrollWidth,
+                height: billRef.current.scrollHeight,
+                pixelRatio: 2,
             });
             const link = document.createElement("a");
             link.download = `Supplier_Settlement_${new Date().getTime()}.png`;
@@ -138,13 +141,14 @@ export default function SettleOrders() {
                     </button>
                 </div>
 
-                <div className="w-full bg-slate-50 flex flex-col items-center p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-auto max-h-[80vh]">
+                <div className="w-full bg-slate-50 flex flex-col items-start p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto max-h-[80vh]">
                     <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2 shrink-0">
                         <FiPrinter /> Supplier Bill Preview
                     </p>
                     <div
                         ref={billRef}
-                        className="bg-white p-6 sm:p-8 border border-slate-200 shadow-md print-friendly relative shrink-0 h-max w-full max-w-[450px]"
+                        style={{ width: '600px', minWidth: '600px' }}
+                        className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
                     >
                         <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 

@@ -77,7 +77,13 @@ export default function OrderConfirmation() {
     const handleDownloadBill = async () => {
         if (billRef.current === null) return;
         try {
-            const dataUrl = await toPng(billRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
+            const dataUrl = await toPng(billRef.current, {
+                cacheBust: true,
+                backgroundColor: '#ffffff',
+                width: billRef.current.scrollWidth,
+                height: billRef.current.scrollHeight,
+                pixelRatio: 2,
+            });
             const link = document.createElement('a');
             link.download = `Bill_${confirmedOrder.orderId}.png`;
             link.href = dataUrl;
@@ -115,11 +121,11 @@ export default function OrderConfirmation() {
                 </div>
 
                 {/* Printable/Downloadable Bill Node */}
-                <div className="w-full bg-slate-50 flex flex-col items-center p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-auto max-h-[80vh]">
+                <div className="w-full bg-slate-50 flex flex-col items-start p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto max-h-[80vh]">
                     <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2 shrink-0">
                         <FiPrinter /> Receipt Preview
                     </p>
-                    <div ref={billRef} className="bg-white p-6 sm:p-8 border border-slate-200 shadow-md print-friendly relative shrink-0 h-max w-full max-w-[450px]">
+                    <div ref={billRef} style={{ width: '450px', minWidth: '450px' }} className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0">
                         {/* Decorative Top Border */}
                         <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 

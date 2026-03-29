@@ -153,56 +153,108 @@ export default function Flowers() {
               <p className="text-sm">Try adjusting your search or add a new flower.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold text-sm uppercase tracking-wider">
-                    <th className="p-5 pl-6 rounded-tl-3xl">ID</th>
-                    <th className="p-5">Flower Name</th>
-                    <th className="p-5">Cost Price</th>
-                    <th className="p-5">Selling Price</th>
-                    <th className="p-5">Margin</th>
-                    <th className="p-5 pr-6 text-right rounded-tr-3xl">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {flowers.map((flower) => {
-                    const margin = flower.sellingPrice - flower.costPrice;
-                    const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
-                    
-                    return (
-                      <tr key={flower._id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="p-5 pl-6 font-mono text-sm text-slate-400 font-semibold">{flower.flowerId}</td>
-                        <td className="p-5 font-bold text-slate-800">{flower.name}</td>
-                        <td className="p-5 font-medium text-slate-600">{formatCurrency(flower.costPrice)}</td>
-                        <td className="p-5 font-bold text-emerald-600">{formatCurrency(flower.sellingPrice)}</td>
-                        <td className="p-5">
-                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold leading-5 bg-indigo-50 text-indigo-700">
-                            {margin >= 0 ? '+' : ''}{marginPercent}%
-                          </div>
-                        </td>
-                        <td className="p-5 pr-6 text-right space-x-2">
-                          <button 
+            <>
+              {/* ── Mobile Card View ─────────────────────────────────── */}
+              <div className="sm:hidden flex flex-col divide-y divide-slate-100">
+                {flowers.map((flower) => {
+                  const margin = flower.sellingPrice - flower.costPrice;
+                  const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
+                  const isGoodMargin = margin >= 0;
+                  return (
+                    <div key={flower._id} className="p-4 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-800 text-base">{flower.name}</p>
+                          <p className="text-xs font-mono text-slate-400 mt-0.5">{flower.flowerId}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
                             onClick={() => handleOpenModal(flower)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-block"
-                            title="Edit"
+                            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
                           >
-                            <FiEdit2 size={18} />
+                            <FiEdit2 size={17} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDelete(flower._id)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors inline-block"
-                            title="Delete"
+                            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                           >
-                            <FiTrash2 size={18} />
+                            <FiTrash2 size={17} />
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-slate-50 rounded-xl p-3">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Cost</p>
+                          <p className="font-bold text-slate-700 text-sm">{formatCurrency(flower.costPrice)}</p>
+                        </div>
+                        <div className="bg-emerald-50 rounded-xl p-3">
+                          <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Price</p>
+                          <p className="font-bold text-emerald-700 text-sm">{formatCurrency(flower.sellingPrice)}</p>
+                        </div>
+                        <div className={`rounded-xl p-3 ${isGoodMargin ? 'bg-indigo-50' : 'bg-rose-50'}`}>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isGoodMargin ? 'text-indigo-500' : 'text-rose-500'}`}>Margin</p>
+                          <p className={`font-black text-sm ${isGoodMargin ? 'text-indigo-700' : 'text-rose-700'}`}>{isGoodMargin ? '+' : ''}{marginPercent}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Desktop Table View ───────────────────────────────── */}
+              <div className="hidden sm:block overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold text-sm uppercase tracking-wider">
+                      <th className="p-5 pl-6 rounded-tl-3xl">ID</th>
+                      <th className="p-5">Flower Name</th>
+                      <th className="p-5">Cost Price</th>
+                      <th className="p-5">Selling Price</th>
+                      <th className="p-5">Margin</th>
+                      <th className="p-5 pr-6 text-right rounded-tr-3xl">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {flowers.map((flower) => {
+                      const margin = flower.sellingPrice - flower.costPrice;
+                      const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
+                      const isGoodMargin = margin >= 0;
+                      return (
+                        <tr key={flower._id} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="p-5 pl-6 font-mono text-sm text-slate-400 font-semibold">{flower.flowerId}</td>
+                          <td className="p-5 font-bold text-slate-800">{flower.name}</td>
+                          <td className="p-5 font-medium text-slate-600">{formatCurrency(flower.costPrice)}</td>
+                          <td className="p-5 font-bold text-emerald-600">{formatCurrency(flower.sellingPrice)}</td>
+                          <td className="p-5">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              isGoodMargin ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'
+                            }`}>
+                              {isGoodMargin ? '+' : ''}{marginPercent}%
+                            </span>
+                          </td>
+                          <td className="p-5 pr-6 text-right space-x-1">
+                            <button
+                              onClick={() => handleOpenModal(flower)}
+                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors inline-block"
+                              title="Edit"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(flower._id)}
+                              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors inline-block"
+                              title="Delete"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

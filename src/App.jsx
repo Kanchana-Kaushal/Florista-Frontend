@@ -69,14 +69,11 @@ function NavItem({ to, icon, label, exact = false, isFloating = false }) {
 
     if (isFloating) {
         return (
-            <Link
-                to={to}
-                className="flex flex-col items-center justify-center -mt-6"
-            >
-                <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-indigo-200 border-4 border-slate-50 relative z-10 transition-transform hover:scale-105 active:scale-95">
+            <Link to={to} className="flex flex-col items-center justify-center -mt-6">
+                <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-indigo-300/50 border-4 border-slate-50 relative z-10 transition-transform hover:scale-105 active:scale-95">
                     {icon}
                 </div>
-                <span className="text-[10px] font-bold text-indigo-700 mt-1">
+                <span className="text-[10px] font-black text-indigo-700 mt-1 tracking-tight">
                     {label}
                 </span>
             </Link>
@@ -84,18 +81,22 @@ function NavItem({ to, icon, label, exact = false, isFloating = false }) {
     }
 
     return (
+        // Mobile: pill chip background when active
+        // Desktop: subtle filled pill
         <Link
             to={to}
-            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-full transition-all text-sm sm:text-base font-medium ${isActive ? "text-indigo-600 sm:bg-indigo-50 sm:border-indigo-100 sm:border shadow-sm sm:shadow-none" : "text-slate-500 hover:text-indigo-500 hover:bg-slate-50"}`}
+            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-1.5 rounded-2xl transition-all duration-200 text-sm font-medium select-none ${
+                isActive
+                    ? "text-indigo-600 bg-indigo-50 sm:border sm:border-indigo-100/80"
+                    : "text-slate-400 sm:text-slate-500 hover:text-indigo-500 hover:bg-slate-50"
+            }`}
         >
-            <div
-                className={`${isActive ? "scale-110 sm:scale-100" : ""} transition-transform`}
-            >
+            <div className={`transition-all duration-200 ${isActive ? "scale-110 sm:scale-100" : ""}`}>
                 {icon}
             </div>
-            <span
-                className={`${isActive ? "font-bold" : "font-medium"} sm:block ${isFloating ? "" : "text-[10px] sm:text-sm mt-0.5 sm:mt-0"}`}
-            >
+            <span className={`text-[10px] sm:text-sm mt-0.5 sm:mt-0 ${
+                isActive ? "font-black text-indigo-600" : "font-medium"
+            }`}>
                 {label}
             </span>
         </Link>
@@ -114,51 +115,35 @@ function Layout() {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col items-center w-full relative pb-20 sm:pb-0">
-            {/* Top Navigation - Always visible but links hidden on mobile */}
-            <nav className="w-full bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+            {/* Top Navigation */}
+            <nav className="w-full bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/70 sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex justify-between items-center">
-                    <div className="flex items-center gap-3 text-indigo-900 font-extrabold text-xl tracking-tight">
-                        <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md flex items-center justify-center text-white text-xl">
+
+                    {/* Brand */}
+                    <div className="flex items-center gap-2.5 text-indigo-900 font-extrabold text-xl tracking-tight">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md shadow-indigo-200/60 flex items-center justify-center text-white text-lg sm:text-xl font-black flex-shrink-0">
                             F
                         </div>
-                        <span className="hidden sm:inline">Florista ERP</span>
+                        <div className="hidden sm:flex flex-col leading-none">
+                            <span className="text-slate-900 font-black tracking-tight">Florista</span>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">ERP System</span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4">
-                        {/* Desktop Links (Hidden on mobile) */}
-                        <div className="hidden sm:flex gap-2 lg:gap-4 items-center sm:border-r border-slate-200 sm:pr-4">
-                            <NavItem
-                                to="/"
-                                icon={<FiPieChart size={18} />}
-                                label="Dashboard"
-                                exact={true}
-                            />
-                            <NavItem
-                                to="/orders"
-                                icon={<FiShoppingBag size={18} />}
-                                label="Orders"
-                            />
-                            <NavItem
-                                to="/new-order"
-                                icon={<FiPlus size={18} />}
-                                label="New Order"
-                            />
-                            <NavItem
-                                to="/flowers"
-                                icon={<FiArchive size={18} />}
-                                label="Inventory"
-                            />
-                            <NavItem
-                                to="/buyers"
-                                icon={<FiUsers size={18} />}
-                                label="Buyers"
-                            />
+                        {/* Desktop Links */}
+                        <div className="hidden sm:flex gap-1 lg:gap-2 items-center sm:border-r border-slate-200 sm:pr-4">
+                            <NavItem to="/" icon={<FiPieChart size={18} />} label="Dashboard" exact={true} />
+                            <NavItem to="/orders" icon={<FiShoppingBag size={18} />} label="Orders" />
+                            <NavItem to="/new-order" icon={<FiPlus size={18} />} label="New Order" />
+                            <NavItem to="/flowers" icon={<FiArchive size={18} />} label="Inventory" />
+                            <NavItem to="/buyers" icon={<FiUsers size={18} />} label="Buyers" />
                         </div>
 
-                        {/* Logout Button */}
+                        {/* Logout */}
                         <button
                             onClick={handleLogout}
-                            className="flex items-center gap-2 text-rose-500 hover:text-rose-700 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors text-sm sm:text-base select-none active:scale-95 border border-rose-100/50"
+                            className="flex items-center gap-2 text-rose-500 hover:text-rose-700 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-all text-sm select-none active:scale-95 border border-rose-100/50"
                         >
                             <FiLogOut size={18} />
                             <span className="hidden sm:block">Logout</span>
@@ -171,39 +156,17 @@ function Layout() {
                 <Outlet />
             </main>
 
-            <footer className="w-full py-6 text-center text-slate-400 text-sm border-t border-slate-200 bg-white mt-auto hidden sm:block">
-                &copy; {new Date().getFullYear()} Florista ERP
+            <footer className="w-full py-6 text-center text-slate-400 text-xs font-medium border-t border-slate-200 bg-white mt-auto hidden sm:block">
+                &copy; {new Date().getFullYear()} Florista ERP &nbsp;·&nbsp; Built for florists
             </footer>
 
             {/* Mobile Bottom Tab Bar */}
-            <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] z-50 flex justify-around items-end pt-2 pb-4 px-2 safe-bottom">
-                <NavItem
-                    to="/"
-                    icon={<FiPieChart size={22} />}
-                    label="Home"
-                    exact={true}
-                />
-                <NavItem
-                    to="/orders"
-                    icon={<FiShoppingBag size={22} />}
-                    label="Orders"
-                />
-                <NavItem
-                    to="/new-order"
-                    icon={<FiPlus size={28} />}
-                    label="New"
-                    isFloating={true}
-                />
-                <NavItem
-                    to="/flowers"
-                    icon={<FiArchive size={22} />}
-                    label="Stock"
-                />
-                <NavItem
-                    to="/buyers"
-                    icon={<FiUsers size={22} />}
-                    label="Buyers"
-                />
+            <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] z-50 flex justify-around items-end pt-2 pb-4 px-1 safe-bottom">
+                <NavItem to="/" icon={<FiPieChart size={22} />} label="Home" exact={true} />
+                <NavItem to="/orders" icon={<FiShoppingBag size={22} />} label="Orders" />
+                <NavItem to="/new-order" icon={<FiPlus size={28} />} label="New" isFloating={true} />
+                <NavItem to="/flowers" icon={<FiArchive size={22} />} label="Stock" />
+                <NavItem to="/buyers" icon={<FiUsers size={22} />} label="Buyers" />
             </div>
         </div>
     );
