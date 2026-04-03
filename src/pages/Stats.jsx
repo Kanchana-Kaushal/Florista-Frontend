@@ -1,24 +1,29 @@
 import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext.jsx";
 import {
-    FiTrendingUp,
-    FiDollarSign,
     FiShoppingBag,
     FiAlertCircle,
+    FiTrendingUp,
+    FiUsers,
+    FiBarChart2,
+    FiActivity,
+    FiDollarSign,
     FiLoader,
     FiCalendar,
     FiCheckCircle,
     FiClock,
-    FiBarChart2,
-    FiActivity,
 } from "react-icons/fi";
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { MetricSkeleton, ChartSkeleton } from "../components/Skeletons.jsx";
 import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Stats() {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [monthOffset, setMonthOffset] = useState(0);
@@ -44,11 +49,23 @@ export default function Stats() {
 
     if (loading && !data) {
         return (
-            <div className="w-full min-h-[60vh] flex flex-col items-center justify-center text-indigo-500">
-                <FiLoader className="animate-spin mb-6" size={56} />
-                <p className="font-bold tracking-tight text-slate-400 text-lg animate-pulse">
-                    Crunching the numbers...
-                </p>
+            <div className="w-full flex justify-center pb-20 sm:pb-12 bg-slate-50 min-h-[100vh]">
+                <div className="w-full">
+                    {/* Header skeleton */}
+                    <div className="w-full bg-linear-to-b from-indigo-100/60 to-transparent pt-8 sm:pt-12 pb-16 px-4 animate-pulse">
+                        <div className="max-w-7xl mx-auto h-20"></div>
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 -mt-10 sm:-mt-12">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pb-6 mt-6 sm:mt-0">
+                            {[1, 2, 3, 4].map((i) => (
+                                <MetricSkeleton key={i} />
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 mt-6">
+                            <ChartSkeleton />
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -61,8 +78,14 @@ export default function Stats() {
         );
     }
 
-    const { overview, topFlowers, salesByLocation, topBuyers, recentActivity } =
-        data;
+    const {
+        overview,
+        topFlowers,
+        salesByLocation,
+        topBuyers,
+        recentActivity,
+        dailyActivity,
+    } = data;
 
     // Formatting currency
     const formatCurrency = (amount) =>
@@ -97,13 +120,17 @@ export default function Stats() {
         if (!previous || previous === 0) return null;
         const diff = current - previous;
         const pct = ((diff / previous) * 100).toFixed(1);
-        return { isPositive: diff >= 0, percentage: Math.abs(pct), label: 'vs last mo.' };
+        return {
+            isPositive: diff >= 0,
+            percentage: Math.abs(pct),
+            label: "vs last mo.",
+        };
     };
 
     const prevMonth = data.previousMonth || {};
-    const salesMoM   = calcMoM(overview.totalSales, prevMonth.totalSales);
-    const profitMoM  = calcMoM(overview.totalProfit, prevMonth.totalProfit);
-    const ordersMoM  = calcMoM(overview.fulfilledOrders, prevMonth.totalOrders);
+    const salesMoM = calcMoM(overview.totalSales, prevMonth.totalSales);
+    const profitMoM = calcMoM(overview.totalProfit, prevMonth.totalProfit);
+    const ordersMoM = calcMoM(overview.fulfilledOrders, prevMonth.totalOrders);
 
     const salesTrend = data.historicalAverages
         ? calculateTrend(
@@ -155,7 +182,9 @@ export default function Stats() {
                         <div>
                             <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight flex items-baseline gap-2">
                                 Welcome back
-                                {user?.username ? `, ${user.username}` : ""}{" "}
+                                {user?.username
+                                    ? `, ${user.username}`
+                                    : ""}{" "}
                                 <span className="inline-block hover:animate-bounce text-4xl">
                                     👋
                                 </span>
@@ -257,62 +286,118 @@ export default function Stats() {
                         />
                     </div>
 
-                    {/* Monthly Sales Trend Chart */}
-                    <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
-                        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
-                            <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                                <FiBarChart2 />
-                            </span>
-                            Monthly Revenue Trend
-                        </h3>
-                        <div className="w-full h-40 flex items-end gap-1 sm:gap-2">
-                            {data.monthlySales &&
-                            data.monthlySales.length > 0 ? (
-                                (() => {
-                                    const maxMonthly = Math.max(
-                                        ...data.monthlySales.map(
-                                            (m) => m.totalSales,
-                                        ),
-                                    );
-                                    return data.monthlySales.map(
-                                        (month, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex-1 flex flex-col justify-end group relative h-full"
-                                            >
-                                                {/* Tooltip */}
-                                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                                    {new Date(
-                                                        month.date,
-                                                    ).toLocaleDateString(
-                                                        undefined,
+                    {/* Chart Row 1: Trend and Heatmap */}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+                        {/* Monthly Sales Trend Chart (RECHARTS) */}
+                        <div className="xl:col-span-2 bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                    <FiBarChart2 />
+                                </span>
+                                Monthly Revenue Trend
+                            </h3>
+                            <div className="w-full h-56 sm:h-64 flex items-end gap-1 sm:gap-2 text-sm z-10">
+                                {data.monthlySales &&
+                                data.monthlySales.length > 0 ? (
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                    >
+                                        <AreaChart data={data.monthlySales}>
+                                            <defs>
+                                                <linearGradient
+                                                    id="colorSales"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <stop
+                                                        offset="5%"
+                                                        stopColor="#818cf8"
+                                                        stopOpacity={0.8}
+                                                    />
+                                                    <stop
+                                                        offset="95%"
+                                                        stopColor="#818cf8"
+                                                        stopOpacity={0}
+                                                    />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis
+                                                dataKey="date"
+                                                tickFormatter={(val) =>
+                                                    new Date(
+                                                        val,
+                                                    ).toLocaleString(
+                                                        "default",
+                                                        { month: "short" },
+                                                    )
+                                                }
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{
+                                                    fill: "#94a3b8",
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                }}
+                                                dy={10}
+                                            />
+                                            <Tooltip
+                                                cursor={{
+                                                    stroke: "#cbd5e1",
+                                                    strokeWidth: 1,
+                                                    strokeDasharray: "4 4",
+                                                }}
+                                                contentStyle={{
+                                                    borderRadius: "16px",
+                                                    border: "none",
+                                                    boxShadow:
+                                                        "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+                                                    padding: "12px",
+                                                    backgroundColor: "#fff",
+                                                    color: "#1e293b",
+                                                }}
+                                                labelFormatter={(val) =>
+                                                    new Date(
+                                                        val,
+                                                    ).toLocaleString(
+                                                        "default",
                                                         {
-                                                            month: "short",
+                                                            month: "long",
                                                             year: "numeric",
                                                         },
-                                                    )}
-                                                    :{" "}
-                                                    {formatCurrency(
-                                                        month.totalSales,
-                                                    )}
-                                                </div>
-                                                <div
-                                                    className="w-full bg-linear-to-t from-blue-400 to-blue-600 rounded-t-sm hover:brightness-110 transition-all cursor-crosshair min-h-[4px]"
-                                                    style={{
-                                                        height: `${maxMonthly > 0 ? (month.totalSales / maxMonthly) * 100 : 0}%`,
-                                                    }}
-                                                ></div>
-                                            </div>
-                                        ),
-                                    );
-                                })()
-                            ) : (
-                                <EmptyState
-                                    message="No monthly sales data yet."
-                                    icon={FiBarChart2}
-                                />
-                            )}
+                                                    )
+                                                }
+                                                formatter={(val) => [
+                                                    formatCurrency(val),
+                                                    "Revenue",
+                                                ]}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="totalSales"
+                                                stroke="#6366f1"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#colorSales)"
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <EmptyState
+                                        message="No monthly sales data yet."
+                                        icon={FiBarChart2}
+                                    />
+                                )}
+                            </div>
                         </div>
+
+                        {/* Daily Activity Heatmap */}
+                        <ActivityHeatmap
+                            dailyActivity={dailyActivity}
+                            monthOffset={monthOffset}
+                        />
                     </div>
 
                     {/* Charts Row */}
@@ -325,28 +410,45 @@ export default function Stats() {
                                 </span>
                                 Top Selling Flowers
                             </h3>
-                            <p className="text-xs text-slate-400 font-semibold mb-6 ml-1">Revenue · Profit margin · Units sold</p>
+                            <p className="text-xs text-slate-400 font-semibold mb-6 ml-1">
+                                Revenue · Profit margin · Units sold
+                            </p>
                             <div className="flex-1 w-full space-y-5">
                                 {topFlowers && topFlowers.length > 0 ? (
                                     topFlowers.map((flower, idx) => (
-                                        <div key={idx} className="group relative">
+                                        <div
+                                            key={idx}
+                                            className="group relative"
+                                        >
                                             <div className="flex justify-between items-end mb-1.5">
-                                                <span className="font-bold text-slate-700 text-sm">{flower.name}</span>
+                                                <span className="font-bold text-slate-700 text-sm">
+                                                    {flower.name}
+                                                </span>
                                                 <div className="flex items-center gap-2">
                                                     {/* #14: Profit margin badge */}
-                                                    {flower.profitMarginPct !== undefined && (
-                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                                            flower.profitMarginPct >= 30
-                                                                ? 'bg-emerald-100 text-emerald-700'
-                                                                : flower.profitMarginPct >= 15
-                                                                ? 'bg-amber-100 text-amber-700'
-                                                                : 'bg-rose-100 text-rose-700'
-                                                        }`}>
-                                                            {flower.profitMarginPct.toFixed(1)}% margin
+                                                    {flower.profitMarginPct !==
+                                                        undefined && (
+                                                        <span
+                                                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                                                flower.profitMarginPct >=
+                                                                30
+                                                                    ? "bg-emerald-100 text-emerald-700"
+                                                                    : flower.profitMarginPct >=
+                                                                        15
+                                                                      ? "bg-amber-100 text-amber-700"
+                                                                      : "bg-rose-100 text-rose-700"
+                                                            }`}
+                                                        >
+                                                            {flower.profitMarginPct.toFixed(
+                                                                1,
+                                                            )}
+                                                            % margin
                                                         </span>
                                                     )}
                                                     <span className="font-black text-slate-900 text-sm sm:text-base">
-                                                        {formatCurrency(flower.totalRevenue)}
+                                                        {formatCurrency(
+                                                            flower.totalRevenue,
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
@@ -354,22 +456,36 @@ export default function Stats() {
                                             <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden flex relative mb-1">
                                                 <div
                                                     className="bg-linear-to-r from-indigo-400 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm"
-                                                    style={{ width: `${(flower.totalRevenue / maxFlowerRevenue) * 100}%` }}
+                                                    style={{
+                                                        width: `${(flower.totalRevenue / maxFlowerRevenue) * 100}%`,
+                                                    }}
                                                 />
                                             </div>
                                             {/* #14: Profit bar (overlaid as a secondary bar) */}
-                                            {flower.grossProfit !== undefined && (
+                                            {flower.grossProfit !==
+                                                undefined && (
                                                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden flex relative">
                                                     <div
                                                         className="bg-linear-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000 ease-out"
-                                                        style={{ width: `${Math.max(0, (flower.grossProfit / maxFlowerProfit) * 100)}%` }}
+                                                        style={{
+                                                            width: `${Math.max(0, (flower.grossProfit / maxFlowerProfit) * 100)}%`,
+                                                        }}
                                                     />
                                                 </div>
                                             )}
                                             <p className="text-left text-xs text-slate-400 mt-1.5 font-medium flex gap-3">
-                                                <span>{flower.totalQtySold} units sold</span>
-                                                {flower.grossProfit !== undefined && (
-                                                    <span className="text-emerald-500">Profit: {formatCurrency(flower.grossProfit)}</span>
+                                                <span>
+                                                    {flower.totalQtySold} units
+                                                    sold
+                                                </span>
+                                                {flower.grossProfit !==
+                                                    undefined && (
+                                                    <span className="text-emerald-500">
+                                                        Profit:{" "}
+                                                        {formatCurrency(
+                                                            flower.grossProfit,
+                                                        )}
+                                                    </span>
                                                 )}
                                             </p>
                                         </div>
@@ -451,7 +567,15 @@ export default function Stats() {
                                     recentActivity.map((activity, idx) => (
                                         <div
                                             key={idx}
-                                            className="relative group"
+                                            onClick={() =>
+                                                navigate("/orders", {
+                                                    state: {
+                                                        openOrderId:
+                                                            activity.orderId,
+                                                    },
+                                                })
+                                            }
+                                            className="relative group cursor-pointer"
                                         >
                                             {/* Timeline Node Icon */}
                                             <div
@@ -702,10 +826,13 @@ function AnimatedMetricCard({
                     {mom ? (
                         <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                                mom.isPositive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                                mom.isPositive
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-rose-100 text-rose-700"
                             }`}
                         >
-                            {mom.isPositive ? "↑" : "↓"} {mom.percentage}% {mom.label}
+                            {mom.isPositive ? "↑" : "↓"} {mom.percentage}%{" "}
+                            {mom.label}
                         </span>
                     ) : trend ? (
                         <span
@@ -724,6 +851,101 @@ function AnimatedMetricCard({
                         {subtitle}
                     </p>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function ActivityHeatmap({ dailyActivity, monthOffset }) {
+    const formatCurrency = (amount) =>
+        `Rs. ${Number(amount || 0).toLocaleString("en-US", {
+            maximumFractionDigits: 0,
+        })}`;
+
+    const now = new Date();
+    const targetMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - monthOffset,
+        1,
+    );
+    const daysInMonth = new Date(
+        targetMonth.getFullYear(),
+        targetMonth.getMonth() + 1,
+        0,
+    ).getDate();
+
+    const maxActivity =
+        dailyActivity?.length > 0
+            ? Math.max(...dailyActivity.map((d) => d.amount))
+            : 0;
+
+    const days = Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        const entry = dailyActivity?.find((d) => d.day === day);
+        return {
+            day,
+            amount: entry?.amount || 0,
+        };
+    });
+
+    const getHeatmapColor = (amount) => {
+        if (!amount || amount === 0)
+            return "bg-slate-100 hover:bg-slate-200 border border-slate-200/60";
+        if (maxActivity === 0) return "bg-emerald-200 hover:bg-emerald-300";
+
+        const ratio = amount / maxActivity;
+        if (ratio > 0.6)
+            return "bg-emerald-600 hover:bg-emerald-700 shadow-sm border border-emerald-700/20";
+        if (ratio > 0.3)
+            return "bg-emerald-500 hover:bg-emerald-600 shadow-sm border border-emerald-600/20";
+        if (ratio > 0.1)
+            return "bg-emerald-400 hover:bg-emerald-500 shadow-sm border border-emerald-500/20";
+        return "bg-emerald-300 hover:bg-emerald-400 shadow-sm border border-emerald-400/20";
+    };
+
+    return (
+        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all h-full min-h-[300px]">
+            <div className="flex justify-between items-start mb-6">
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <FiCalendar />
+                    </span>
+                    Daily Vibe
+                </h3>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-3 py-1 rounded-lg border border-slate-200/60">
+                    {targetMonth.toLocaleString("default", { month: "short" })}
+                </span>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-center max-w-[320px]">
+                    {days.map((d) => (
+                        <div
+                            key={d.day}
+                            className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-sm transition-all cursor-crosshair group relative ${getHeatmapColor(d.amount)}`}
+                        >
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-800 text-white text-[10px] sm:text-xs font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20 shadow-lg scale-90 group-hover:scale-100">
+                                {targetMonth.toLocaleString("default", {
+                                    month: "short",
+                                })}{" "}
+                                {d.day}: {formatCurrency(d.amount)}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between text-xs font-semibold text-slate-400">
+                <span>Less</span>
+                <div className="flex gap-1 sm:gap-1.5">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm bg-slate-100 border border-slate-200/60"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm bg-emerald-300"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm bg-emerald-400"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm bg-emerald-500"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm bg-emerald-600"></div>
+                </div>
+                <span>More</span>
             </div>
         </div>
     );

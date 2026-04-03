@@ -416,13 +416,23 @@ export default function NewOrder() {
                                         min="1"
                                         required
                                         className="w-full p-3 text-base mt-1 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
-                                        value={customItem.qty}
+                                        value={customItem.qty === '' ? '' : customItem.qty}
                                         onChange={(e) =>
                                             setCustomItem({
                                                 ...customItem,
-                                                qty: e.target.value,
+                                                qty: e.target.value === '' ? '' : Number(e.target.value),
                                             })
                                         }
+                                        onFocus={(e) => {
+                                            e.target.setAttribute('data-prev', customItem.qty || 1);
+                                            setCustomItem({ ...customItem, qty: '' })
+                                        }}
+                                        onBlur={(e) => {
+                                            if (customItem.qty === '' || customItem.qty <= 0) {
+                                                const prev = Number(e.target.getAttribute('data-prev'));
+                                                setCustomItem({ ...customItem, qty: prev || 1 });
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <button

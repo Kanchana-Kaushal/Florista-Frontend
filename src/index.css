@@ -2,102 +2,118 @@
 
 /* ── Base & Typography ────────────────────────────────────────────────────── */
 html {
-  scroll-behavior: smooth;
-  /* Removes the blue flash on tap for mobile */
-  -webkit-tap-highlight-color: transparent;
-  /* Respect device safe areas (iPhone notch, home bar) */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    scroll-behavior: smooth;
+    /* Removes the blue flash on tap for mobile */
+    -webkit-tap-highlight-color: transparent;
+    /* Respect device safe areas (iPhone notch, home bar) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  /* Crisp sub-pixel font rendering */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  /* Prevent font size inflation on orientation change */
-  -webkit-text-size-adjust: 100%;
-  background-color: #f8fafc;
+    font-family:
+        "Inter",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
+    /* Crisp sub-pixel font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Prevent font size inflation on orientation change */
+    -webkit-text-size-adjust: 100%;
+    background-color: #f8fafc;
 }
 
 /* ── Custom Scrollbar (thin + branded) ──────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+    width: 4px;
+    height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c7d2fe;
-  border-radius: 20px;
+    background: #c7d2fe;
+    border-radius: 20px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #818cf8;
+    background: #818cf8;
 }
 
 /* ── Custom named scrollbar for panels/modals ───────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
+    width: 3px;
+    height: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 20px;
+    background: #e2e8f0;
+    border-radius: 20px;
 }
 
 /* ── Safe Area Bottom — for mobile panel footers & nav ──────────────────── */
 .safe-bottom {
-  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
 /* ── Focus ring: consistent indigo outline on all inputs ────────────────── */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #818cf8;
-  outline-offset: 2px;
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
 }
 
 /* ── Button press feel on mobile ────────────────────────────────────────── */
 button {
-  -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Print-friendly receipt styles ─────────────────────────────────────── */
 @media print {
-  .print-friendly {
-    box-shadow: none !important;
-    border: none !important;
-  }
+    .print-friendly {
+        box-shadow: none !important;
+        border: none !important;
+    }
 }
 
 /* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 @keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateX(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-.animate-fade-in-up  { animation: fadeInUp    0.28s ease both; }
-.animate-fade-in     { animation: fadeIn      0.2s  ease both; }
-.animate-slide-right { animation: slideInRight 0.28s ease both; }
+.animate-fade-in-up {
+    animation: fadeInUp 0.28s ease both;
+}
+.animate-fade-in {
+    animation: fadeIn 0.2s ease both;
+}
+.animate-slide-right {
+    animation: slideInRight 0.28s ease both;
+}
