@@ -17,6 +17,7 @@ import {
     FiMapPin,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { ListSkeleton } from "../components/Skeletons.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -209,12 +210,7 @@ export default function Buyers() {
                 {/* Content Area */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
                     {loading ? (
-                        <div className="w-full h-[400px] flex flex-col items-center justify-center text-amber-500">
-                            <FiLoader className="animate-spin mb-4" size={40} />
-                            <p className="font-medium text-slate-500">
-                                Loading directory...
-                            </p>
-                        </div>
+                        <ListSkeleton />
                     ) : buyers.length === 0 ? (
                         <div className="w-full h-[400px] flex flex-col items-center justify-center text-slate-400">
                             <div className="bg-slate-50 p-6 rounded-full mb-4">

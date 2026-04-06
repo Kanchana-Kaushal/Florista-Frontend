@@ -8,6 +8,7 @@ import {
     FiDownload,
     FiPrinter,
     FiEdit3,
+    FiTrash2,
 } from "react-icons/fi";
 import { toPng } from "html-to-image";
 
@@ -29,9 +30,15 @@ export default function SettleOrders() {
         ) {
             navigate("/orders");
         } else {
-            setOrders(
-                JSON.parse(JSON.stringify(location.state.selectedOrders)),
-            );
+            const initialOrders = JSON.parse(JSON.stringify(location.state.selectedOrders)).map(order => ({
+                ...order,
+                items: order.items.map(item => ({
+                    ...item,
+                    billQty: item.qty,
+                    removedFromBill: false
+                }))
+            }));
+            setOrders(initialOrders);
         }
     }, [location.state, navigate]);
 
@@ -50,11 +57,29 @@ export default function SettleOrders() {
         setOrders(updatedOrders);
     };
 
+    const handleBillQtyChange = (orderIndex, itemIndex, newQty) => {
+        const updatedOrders = [...orders];
+        updatedOrders[orderIndex].items[itemIndex].billQty = Number(newQty);
+        setOrders(updatedOrders);
+    };
+
+    const handleRemoveFromBill = (orderIndex, itemIndex) => {
+        const updatedOrders = [...orders];
+        updatedOrders[orderIndex].items[itemIndex].removedFromBill = true;
+        setOrders(updatedOrders);
+    };
+
+    const handleRestoreToBill = (orderIndex, itemIndex) => {
+        const updatedOrders = [...orders];
+        updatedOrders[orderIndex].items[itemIndex].removedFromBill = false;
+        setOrders(updatedOrders);
+    };
+
     const totalCost = orders.reduce((sum, order) => {
         return (
             sum +
             order.items.reduce(
-                (itemSum, item) => itemSum + item.cost * item.qty,
+                (itemSum, item) => itemSum + (!item.removedFromBill ? item.cost * item.billQty : 0),
                 0,
             )
         );
@@ -64,10 +89,15 @@ export default function SettleOrders() {
         setIsSubmitting(true);
         try {
             const promises = orders.map((order) => {
-                const itemsPayload = order.items.map((item) => ({
-                    ...item,
-                    flower: item.flower?._id || item.flower,
-                }));
+                const itemsPayload = order.items.map((item) => {
+                    const payloadItem = {
+                        ...item,
+                        flower: item.flower?._id || item.flower,
+                    };
+                    delete payloadItem.billQty;
+                    delete payloadItem.removedFromBill;
+                    return payloadItem;
+                });
 
                 return axios.put(`${API_URL}/orders/${order._id}`, {
                     items: itemsPayload,
@@ -213,7 +243,7 @@ export default function SettleOrders() {
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
                                     {orders.map((order) =>
-                                        order.items.map((item, idx) => (
+                                        order.items.filter(i => !i.removedFromBill).map((item, idx) => (
                                             <tr
                                                 key={`${order._id}-${idx}`}
                                                 className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
@@ -231,14 +261,14 @@ export default function SettleOrders() {
                                                     </div>
                                                 </td>
                                                 <td className="py-3 px-2 text-right">
-                                                    {item.qty}
+                                                    {item.billQty}
                                                 </td>
                                                 <td className="py-3 px-2 text-right">
                                                     {formatCurrency(item.cost)}
                                                 </td>
                                                 <td className="py-3 px-2 text-right font-bold text-slate-800">
                                                     {formatCurrency(
-                                                        item.cost * item.qty,
+                                                        item.cost * item.billQty,
                                                     )}
                                                 </td>
                                             </tr>
@@ -303,47 +333,59 @@ export default function SettleOrders() {
                                 {order.items.map((item, itemIndex) => (
                                     <div
                                         key={itemIndex}
-                                        className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm"
+                                        className={`flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center p-3 sm:p-4 rounded-xl border shadow-sm transition-all ${item.removedFromBill ? 'bg-slate-100 border-slate-200 opacity-60' : 'bg-slate-50 border-slate-200'}`}
                                     >
                                         <div className="flex-1">
-                                            <p className="font-bold text-slate-800 mb-1">
-                                                {item.customProduct ||
-                                                    item.flower?.name}
+                                            <p className={`font-bold mb-1 ${item.removedFromBill ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                                                {item.customProduct || item.flower?.name}
                                             </p>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest bg-white inline-block px-2 py-0.5 rounded border border-slate-100">
-                                                Sale Price:{" "}
-                                                {formatCurrency(item.price)}
+                                                Sale Price: {formatCurrency(item.price)}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-4 bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm w-full sm:w-auto">
-                                            <div>
-                                                <label className="text-xs font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1 mb-1">
-                                                    <FiEdit3 /> Edit Cost (Rs.)
+
+                                        <div className="flex items-end gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 pt-1">
+                                            {/* Cost Input */}
+                                            <div className="flex flex-col shrink-0">
+                                                <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider text-center mb-1 flex justify-center items-center gap-1">
+                                                    <FiEdit3 size={10} /> Cost
                                                 </label>
                                                 <input
                                                     type="number"
                                                     min="0"
-                                                    className="w-24 p-2 sm:p-3 text-base bg-indigo-50 border border-indigo-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-900"
+                                                    className={`w-20 sm:w-24 p-2 sm:p-2.5 text-center text-sm border rounded-xl outline-none font-bold transition-all focus:ring-2 ${item.removedFromBill ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-white border-indigo-200 text-indigo-900 focus:ring-indigo-500 shadow-sm'}`}
                                                     value={item.cost}
-                                                    onChange={(e) =>
-                                                        handleCostChange(
-                                                            orderIndex,
-                                                            itemIndex,
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                    onChange={(e) => handleCostChange(orderIndex, itemIndex, e.target.value)}
                                                 />
                                             </div>
-                                            <div className="text-slate-400 font-bold mx-1">
-                                                x
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1 text-center">
-                                                    Qty
-                                                </label>
-                                                <div className="w-12 py-2 font-bold text-slate-800 text-center bg-slate-100 rounded-md border border-slate-200">
-                                                    {item.qty}
+
+                                            {/* Bill Qty Input */}
+                                            {!item.removedFromBill && (
+                                                <div className="flex flex-col shrink-0">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center mb-1">
+                                                        Qty <span className="opacity-70">(Orig: {item.qty})</span>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-20 sm:w-24 p-2 sm:p-2.5 text-center text-sm bg-white border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-slate-400 transition-all shadow-sm"
+                                                        value={item.billQty}
+                                                        onChange={(e) => handleBillQtyChange(orderIndex, itemIndex, e.target.value)}
+                                                    />
                                                 </div>
+                                            )}
+
+                                            {/* Action Button */}
+                                            <div className="shrink-0">
+                                                {item.removedFromBill ? (
+                                                    <button onClick={() => handleRestoreToBill(orderIndex, itemIndex)} className="h-[38px] sm:h-[42px] px-4 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center">
+                                                        Restore
+                                                    </button>
+                                                ) : (
+                                                    <button onClick={() => handleRemoveFromBill(orderIndex, itemIndex)} className="h-[38px] sm:h-[42px] px-3.5 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shadow-sm flex items-center justify-center" title="Remove from Bill">
+                                                        <FiTrash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -370,7 +412,7 @@ export default function SettleOrders() {
                                 {orders.reduce(
                                     (sum, o) =>
                                         sum +
-                                        o.items.reduce((s, i) => s + i.qty, 0),
+                                        o.items.reduce((s, i) => s + (!i.removedFromBill ? i.billQty : 0), 0),
                                     0,
                                 )}
                             </span>

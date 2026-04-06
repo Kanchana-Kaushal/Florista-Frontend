@@ -17,7 +17,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { toPng } from "html-to-image";
-import { TableRowSkeleton } from "../components/Skeletons.jsx";
+import { ListSkeleton } from "../components/Skeletons.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -236,13 +236,7 @@ export default function Orders() {
                 {/* Content Table */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
                     {loading ? (
-                        <table className="w-full text-left border-collapse min-w-[1000px]">
-                            <tbody>
-                                {[1, 2, 3, 4, 5, 6].map((i) => (
-                                    <TableRowSkeleton key={i} />
-                                ))}
-                            </tbody>
-                        </table>
+                        <ListSkeleton />
                     ) : orders.length === 0 ? (
                         <div className="w-full h-[400px] flex flex-col items-center justify-center text-slate-400">
                             <div className="bg-slate-50 p-6 rounded-full mb-4">
@@ -277,7 +271,7 @@ export default function Orders() {
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50 text-sm md:text-base">
+                                    <tbody className="text-sm md:text-base">
                                         {orders.map((order) => {
                                             const isSelected =
                                                 !!selectedOrders.find(
@@ -301,7 +295,7 @@ export default function Orders() {
                                                             return;
                                                         setDetailsOrder(order);
                                                     }}
-                                                    className={`hover:bg-indigo-50/30 transition-colors group cursor-pointer ${isSelected ? "bg-indigo-50" : ""}`}
+                                                    className={`hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-200 last:border-0 ${isSelected ? "bg-indigo-50" : "bg-white"}`}
                                                 >
                                                     <td className="p-5 pl-6">
                                                         <input
@@ -451,7 +445,7 @@ export default function Orders() {
                             </div>
 
                             {/* Mobile Card View */}
-                            <div className="lg:hidden flex flex-col divide-y divide-slate-100">
+                            <div className="lg:hidden flex flex-col gap-3 px-3 py-4 bg-slate-50/50 rounded-b-2xl">
                                 {orders.map((order) => {
                                     const isSelected = !!selectedOrders.find(
                                         (o) => o._id === order._id,
@@ -474,7 +468,7 @@ export default function Orders() {
                                                     return;
                                                 setDetailsOrder(order);
                                             }}
-                                            className={`p-4 flex flex-col gap-3 transition-colors cursor-pointer ${isSelected ? "bg-indigo-50 border-l-4 border-indigo-500" : "bg-white border-l-4 border-transparent"}`}
+                                            className={`p-4 flex flex-col gap-3 transition-all cursor-pointer rounded-2xl border shadow-sm ${isSelected ? "border-indigo-400 bg-indigo-50/50 ring-1 ring-indigo-400" : "border-slate-200 bg-white hover:border-slate-300"}`}
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-start gap-3">
