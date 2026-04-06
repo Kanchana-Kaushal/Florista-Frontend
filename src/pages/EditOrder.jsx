@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { FiArrowLeft, FiSave, FiSearch, FiPlus, FiTrash2, FiPlusCircle } from 'react-icons/fi';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function EditOrder() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isDark } = useTheme();
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -264,14 +266,14 @@ export default function EditOrder() {
                         <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <label className="flex items-center justify-between cursor-pointer group">
                                 <span className="font-bold text-slate-700 group-hover:text-slate-900">Payment Status</span>
-                                <div className="relative inline-block w-12 h-6 rounded-full transition-colors duration-200 ease-in-out" style={{ backgroundColor: paid ? '#10b981' : '#e2e8f0' }}>
+                                <div className="relative inline-block w-12 h-6 rounded-full transition-colors duration-200 ease-in-out" style={{ backgroundColor: paid ? '#10b981' : (isDark ? '#334155' : '#e2e8f0') }}>
                                     <input type="checkbox" className="opacity-0 w-0 h-0" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
                                     <span className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${paid ? 'transform translate-x-6' : ''}`}></span>
                                 </div>
                             </label>
                             <label className="flex items-center justify-between cursor-pointer group pt-3 border-t border-slate-200">
                                 <span className="font-bold text-slate-700 group-hover:text-slate-900">Settled Status</span>
-                                <div className="relative inline-block w-12 h-6 rounded-full transition-colors duration-200 ease-in-out" style={{ backgroundColor: settled ? '#3b82f6' : '#e2e8f0' }}>
+                                <div className="relative inline-block w-12 h-6 rounded-full transition-colors duration-200 ease-in-out" style={{ backgroundColor: settled ? '#3b82f6' : (isDark ? '#334155' : '#e2e8f0') }}>
                                     <input type="checkbox" className="opacity-0 w-0 h-0" checked={settled} onChange={(e) => setSettled(e.target.checked)} />
                                     <span className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out ${settled ? 'transform translate-x-6' : ''}`}></span>
                                 </div>

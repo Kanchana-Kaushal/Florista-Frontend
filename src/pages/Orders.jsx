@@ -411,7 +411,7 @@ export default function Orders() {
 
                                                         {openDropdown ===
                                                             order._id && (
-                                                            <div className="absolute right-6 top-10 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 text-left">
+                                                            <div className="absolute right-6 top-10 mt-1 w-32 bg-white dark:bg-[#1e293b] rounded-xl shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.4)] border border-slate-100 py-1 z-30 text-left">
                                                                 <button
                                                                     onClick={() => {
                                                                         setOpenDropdown(
@@ -569,7 +569,7 @@ export default function Orders() {
 
                                                     {openDropdown ===
                                                         order._id && (
-                                                        <div className="absolute right-0 bottom-full mb-2 w-32 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 text-left">
+                                                        <div className="absolute right-0 bottom-full mb-2 w-32 bg-white dark:bg-[#1e293b] rounded-xl shadow-xl dark:shadow-[0_10px_30px_rgba(0,0,0,0.4)] border border-slate-100 py-1 z-30 text-left">
                                                             <button
                                                                 onClick={() => {
                                                                     setOpenDropdown(
@@ -617,7 +617,7 @@ export default function Orders() {
                         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
                         onClick={() => setDetailsOrder(null)}
                     ></div>
-                    <div className="relative flex flex-col w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden z-20 max-h-[85vh]">
+                    <div className="relative flex flex-col w-full max-w-2xl bg-white dark:bg-[#111827] rounded-3xl shadow-xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-slate-200 overflow-hidden z-20 max-h-[85vh]">
                         <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
@@ -834,7 +834,7 @@ export default function Orders() {
                             <div
                                 ref={billRef}
                                 style={{ width: "450px", minWidth: "450px" }}
-                                className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
+                                className="preserve-light bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
                             >
                                 <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 

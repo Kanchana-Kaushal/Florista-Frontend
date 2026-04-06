@@ -129,7 +129,7 @@ export default function Flowers() {
             {/* Add Button */}
             <button 
               onClick={() => handleOpenModal()}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-2xl shadow-md transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
             >
               <FiPlus size={20} />
               Add Flower
@@ -262,8 +262,8 @@ export default function Flowers() {
       {/* CRUD Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={handleCloseModal}></div>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative transform transition-all scale-100">
+          <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity" onClick={handleCloseModal}></div>
+          <div className="bg-white dark:bg-[#111827] rounded-3xl shadow-2xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden relative transform transition-all scale-100">
             
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">

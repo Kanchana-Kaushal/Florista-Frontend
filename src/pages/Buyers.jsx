@@ -198,7 +198,7 @@ export default function Buyers() {
                         </div>
                         <button
                             onClick={() => handleOpenModal()}
-                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-2xl shadow-md transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
                         >
                             <FiPlus size={20} />
                             Add Buyer
@@ -397,7 +397,7 @@ export default function Buyers() {
                     />
 
                     {/* Panel */}
-                    <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col z-10 overflow-hidden">
+                    <div className="relative w-full max-w-md bg-white dark:bg-[#111827] shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.6)] flex flex-col z-10 overflow-hidden">
                         {/* Panel Header */}
                         <div className="p-5 border-b border-slate-100 bg-slate-50 shrink-0">
                             <div className="flex items-start justify-between">
@@ -603,10 +603,10 @@ export default function Buyers() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div
-                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
                         onClick={handleCloseModal}
                     />
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative">
+                    <div className="bg-white dark:bg-[#111827] rounded-3xl shadow-2xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden relative">
                         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <h3 className="text-xl font-bold text-slate-800">
                                 {editingBuyer ? "Edit Buyer" : "Add New Buyer"}

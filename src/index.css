@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
+/* ── Enable class-based dark mode variant for Tailwind v4 ──────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ── Base & Typography ────────────────────────────────────────────────────── */
 html {
     scroll-behavior: smooth;
-    /* Removes the blue flash on tap for mobile */
     -webkit-tap-highlight-color: transparent;
-    /* Respect device safe areas (iPhone notch, home bar) */
     padding: env(safe-area-inset-top) env(safe-area-inset-right)
         env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -17,16 +18,152 @@ body {
         -apple-system,
         BlinkMacSystemFont,
         sans-serif;
-    /* Crisp sub-pixel font rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Prevent font size inflation on orientation change */
     -webkit-text-size-adjust: 100%;
     background-color: #f8fafc;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── Custom Scrollbar (thin + branded) ──────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   PREMIUM DARK MODE — CSS Variable Overrides
+   Tailwind v4 utilities reference --color-* variables, so overriding
+   them under .dark automatically re-themes every utility class.
+   ══════════════════════════════════════════════════════════════════════════ */
+.dark body {
+    background-color: #0B0F19;
+}
+
+.dark {
+    color-scheme: dark;
+
+    /* ── Surface / Background Colors ─────────────────────────────────── */
+    --color-white: #111827;
+    --color-black: #f8fafc;
+    --color-slate-50: #0B0F19;
+    --color-slate-100: #151d2e;
+    --color-slate-200: #1e293b;
+    --color-slate-300: #2d3a4f;
+    --color-slate-400: #8896ab;
+    --color-slate-500: #64748b;
+    --color-slate-600: #94a3b8;
+    --color-slate-700: #cbd5e1;
+    --color-slate-800: #e2e8f0;
+    --color-slate-900: #f1f5f9;
+    --color-slate-950: #f8fafc;
+
+    /* ── Indigo — Primary / Glowing ──────────────────────────────────── */
+    --color-indigo-50: rgba(99, 102, 241, 0.08);
+    --color-indigo-100: rgba(99, 102, 241, 0.14);
+    --color-indigo-200: rgba(99, 102, 241, 0.22);
+    --color-indigo-300: #a5b4fc;
+    --color-indigo-400: #818cf8;
+    --color-indigo-500: #6366f1;
+    --color-indigo-600: #818cf8;
+    --color-indigo-700: #6366f1;
+    --color-indigo-800: #a5b4fc;
+    --color-indigo-900: #c7d2fe;
+
+    /* ── Emerald — Profit / Success ──────────────────────────────────── */
+    --color-emerald-50: rgba(16, 185, 129, 0.08);
+    --color-emerald-100: rgba(16, 185, 129, 0.14);
+    --color-emerald-200: rgba(16, 185, 129, 0.22);
+    --color-emerald-300: #6ee7b7;
+    --color-emerald-400: #34d399;
+    --color-emerald-500: #10b981;
+    --color-emerald-600: #34d399;
+    --color-emerald-700: #10b981;
+    --color-emerald-800: #6ee7b7;
+
+    /* ── Rose — Alert / Danger ───────────────────────────────────────── */
+    --color-rose-50: rgba(244, 63, 94, 0.08);
+    --color-rose-100: rgba(244, 63, 94, 0.14);
+    --color-rose-200: rgba(244, 63, 94, 0.22);
+    --color-rose-400: #fb7185;
+    --color-rose-500: #f43f5e;
+    --color-rose-600: #fb7185;
+    --color-rose-700: #f43f5e;
+
+    /* ── Blue — Settlement / Info ─────────────────────────────────────── */
+    --color-blue-50: rgba(59, 130, 246, 0.08);
+    --color-blue-100: rgba(59, 130, 246, 0.14);
+    --color-blue-200: rgba(59, 130, 246, 0.22);
+    --color-blue-400: #60a5fa;
+    --color-blue-500: #3b82f6;
+    --color-blue-600: #60a5fa;
+    --color-blue-700: #3b82f6;
+
+    /* ── Amber — Warning / Pending ────────────────────────────────────── */
+    --color-amber-50: rgba(245, 158, 11, 0.08);
+    --color-amber-100: rgba(245, 158, 11, 0.14);
+    --color-amber-200: rgba(245, 158, 11, 0.22);
+    --color-amber-400: #fbbf24;
+    --color-amber-500: #f59e0b;
+    --color-amber-600: #fbbf24;
+    --color-amber-700: #f59e0b;
+    --color-amber-800: #fde68a;
+
+    /* ── Purple ──────────────────────────────────────────────────────── */
+    --color-purple-500: #a78bfa;
+    --color-purple-600: #a78bfa;
+    --color-purple-900: #e9d5ff;
+
+    /* ── Fuchsia ─────────────────────────────────────────────────────── */
+    --color-fuchsia-50: rgba(217, 70, 239, 0.08);
+    --color-fuchsia-100: rgba(217, 70, 239, 0.14);
+    --color-fuchsia-200: rgba(217, 70, 239, 0.22);
+    --color-fuchsia-400: #e879f9;
+    --color-fuchsia-500: #d946ef;
+    --color-fuchsia-600: #e879f9;
+    --color-fuchsia-700: #d946ef;
+}
+
+/* ── Fix: Keep text white on accent-colored buttons in dark mode ─────── */
+/* When --color-white is overridden, text-white becomes dark. These rules
+   restore white text on elements that have accent background colors. */
+.dark .bg-indigo-600,
+.dark .bg-indigo-700,
+.dark .bg-indigo-500,
+.dark .bg-indigo-400,
+.dark .bg-emerald-500,
+.dark .bg-emerald-600,
+.dark .bg-fuchsia-600,
+.dark .bg-fuchsia-700,
+.dark .bg-amber-500,
+.dark .bg-amber-600,
+.dark .bg-rose-500,
+.dark .bg-rose-600,
+.dark .bg-slate-900,
+.dark .bg-slate-800 {
+    color: #ffffff;
+}
+/* Also for gradient backgrounds (brand logo, etc.) */
+.dark [class*="bg-linear-to"] {
+    color: #ffffff;
+}
+
+/* ── Preserve light mode inside receipt/bill elements ────────────────── */
+.dark .preserve-light {
+    --color-white: #fff;
+    --color-slate-50: #f8fafc;
+    --color-slate-100: #f1f5f9;
+    --color-slate-200: #e2e8f0;
+    --color-slate-300: #cbd5e1;
+    --color-slate-400: #94a3b8;
+    --color-slate-500: #64748b;
+    --color-slate-600: #475569;
+    --color-slate-700: #334155;
+    --color-slate-800: #1e293b;
+    --color-slate-900: #0f172a;
+    --color-indigo-500: #6366f1;
+    --color-indigo-600: #4f46e5;
+    --color-purple-600: #9333ea;
+    --color-emerald-50: #ecfdf5;
+    --color-emerald-600: #059669;
+}
+
+/* ── Custom Scrollbar (thin + branded) ──────────────────────────────── */
 ::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -41,8 +178,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #818cf8;
 }
+.dark ::-webkit-scrollbar-thumb {
+    background: #312e81;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #4338ca;
+}
 
-/* ── Custom named scrollbar for panels/modals ───────────────────────────── */
+/* ── Custom named scrollbar for panels/modals ───────────────────────── */
 .custom-scrollbar::-webkit-scrollbar {
     width: 3px;
     height: 3px;
@@ -51,13 +194,16 @@ body {
     background: #e2e8f0;
     border-radius: 20px;
 }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b;
+}
 
-/* ── Safe Area Bottom — for mobile panel footers & nav ──────────────────── */
+/* ── Safe Area Bottom — for mobile panel footers & nav ──────────────── */
 .safe-bottom {
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
-/* ── Focus ring: consistent indigo outline on all inputs ────────────────── */
+/* ── Focus ring: consistent indigo outline on all inputs ────────────── */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
@@ -65,12 +211,24 @@ textarea:focus-visible {
     outline-offset: 2px;
 }
 
-/* ── Button press feel on mobile ────────────────────────────────────────── */
+/* ── Button press feel on mobile ────────────────────────────────────── */
 button {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Print-friendly receipt styles ─────────────────────────────────────── */
+/* ── Dark mode: select/option elements need explicit bg ─────────────── */
+.dark select,
+.dark option {
+    background-color: #151d2e;
+    color: #e2e8f0;
+}
+
+/* ── Dark mode: subtle glow shadows for cards ───────────────────────── */
+.dark .shadow-sm {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 0 10px -3px rgba(99, 102, 241, 0.05);
+}
+
+/* ── Print-friendly receipt styles ─────────────────────────────────── */
 @media print {
     .print-friendly {
         box-shadow: none !important;
@@ -78,7 +236,7 @@ button {
     }
 }
 
-/* ── Animations ─────────────────────────────────────────────────────────── */
+/* ── Animations ─────────────────────────────────────────────────────── */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -105,6 +263,14 @@ button {
     to {
         opacity: 1;
         transform: translateX(0);
+    }
+}
+@keyframes subtleGlow {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
     }
 }
 

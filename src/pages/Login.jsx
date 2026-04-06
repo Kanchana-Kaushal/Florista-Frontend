@@ -57,7 +57,7 @@ export default function Login() {
       </div>
 
       {/* Login Form Section */}
-      <div className="flex flex-col items-center justify-center p-8 sm:p-12 lg:p-24 bg-white relative">
+      <div className="flex flex-col items-center justify-center p-8 sm:p-12 lg:p-24 bg-white dark:bg-[#0B0F19] relative">
         <div className="w-full max-w-sm space-y-10">
           
           <div className="space-y-2">
@@ -107,7 +107,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-slate-900 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-600/30 text-white font-semibold py-3.5 rounded-xl transition-all duration-300 transform flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 font-semibold py-3.5 rounded-xl transition-all duration-300 transform flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 'Signing in...'

@@ -148,7 +148,7 @@ export default function SettleOrders() {
                     <div
                         ref={billRef}
                         style={{ width: '600px', minWidth: '600px' }}
-                        className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
+                        className="preserve-light bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
                     >
                         <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 

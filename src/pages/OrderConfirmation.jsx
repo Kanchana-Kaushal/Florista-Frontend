@@ -143,7 +143,7 @@ export default function OrderConfirmation() {
                     <div
                         ref={billRef}
                         style={{ width: "450px", minWidth: "450px" }}
-                        className="bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
+                        className="preserve-light bg-white p-8 border border-slate-200 shadow-md print-friendly relative shrink-0"
                     >
                         {/* Decorative Top Border */}
                         <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>

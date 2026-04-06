@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext.jsx";
@@ -22,6 +23,7 @@ import toast from "react-hot-toast";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Stats() {
+    const { isDark } = useTheme();
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [data, setData] = useState(null);
@@ -337,7 +339,7 @@ export default function Stats() {
                                                 axisLine={false}
                                                 tickLine={false}
                                                 tick={{
-                                                    fill: "#94a3b8",
+                                                    fill: isDark ? "#64748b" : "#94a3b8",
                                                     fontSize: 12,
                                                     fontWeight: 600,
                                                 }}
@@ -345,18 +347,19 @@ export default function Stats() {
                                             />
                                             <Tooltip
                                                 cursor={{
-                                                    stroke: "#cbd5e1",
+                                                    stroke: isDark ? "#334155" : "#cbd5e1",
                                                     strokeWidth: 1,
                                                     strokeDasharray: "4 4",
                                                 }}
                                                 contentStyle={{
                                                     borderRadius: "16px",
-                                                    border: "none",
-                                                    boxShadow:
-                                                        "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+                                                    border: isDark ? "1px solid #1e293b" : "none",
+                                                    boxShadow: isDark
+                                                        ? "0 10px 30px -5px rgba(0,0,0,0.5), 0 0 15px -3px rgba(99,102,241,0.15)"
+                                                        : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
                                                     padding: "12px",
-                                                    backgroundColor: "#fff",
-                                                    color: "#1e293b",
+                                                    backgroundColor: isDark ? "#1e293b" : "#fff",
+                                                    color: isDark ? "#e2e8f0" : "#1e293b",
                                                 }}
                                                 labelFormatter={(val) =>
                                                     new Date(

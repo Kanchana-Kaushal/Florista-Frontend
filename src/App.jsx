@@ -16,8 +16,11 @@ import {
     FiUsers,
     FiPieChart,
     FiLogOut,
+    FiSun,
+    FiMoon,
 } from "react-icons/fi";
 import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
+import { useTheme } from "./context/ThemeContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Login from "./pages/Login.jsx";
 import Stats from "./pages/Stats.jsx";
@@ -32,7 +35,7 @@ import toast from "react-hot-toast";
 
 function About() {
     return (
-        <div className="p-8 bg-white rounded-2xl shadow-xl w-full max-w-lg mt-10 border border-slate-100 text-center">
+        <div className="p-8 bg-white rounded-2xl shadow-xl w-full max-w-lg mt-10 border border-slate-200 text-center">
             <div className="bg-emerald-100 p-4 rounded-full mb-6 text-emerald-600 inline-block shadow-sm mx-auto border border-emerald-200">
                 <FiInfo size={48} />
             </div>
@@ -73,8 +76,8 @@ function NavItem({ to, icon, label, exact = false, isFloating = false }) {
                 to={to}
                 className="flex flex-col items-center justify-center -mt-6"
             >
-                <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-indigo-300/50 border-4 border-slate-50 relative z-10 transition-transform hover:scale-105 active:scale-95">
-                    {icon}
+                <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 border-4 border-slate-50 dark:border-[#0B0F19] relative z-10 transition-transform hover:scale-105 active:scale-95">
+                    <span className="text-[#ffffff]">{icon}</span>
                 </div>
                 <span className="text-[10px] font-black text-indigo-700 mt-1 tracking-tight">
                     {label}
@@ -84,14 +87,12 @@ function NavItem({ to, icon, label, exact = false, isFloating = false }) {
     }
 
     return (
-        // Mobile: pill chip background when active
-        // Desktop: subtle filled pill
         <Link
             to={to}
             className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-1.5 rounded-2xl transition-all duration-200 text-sm font-medium select-none ${
                 isActive
                     ? "text-indigo-600 bg-indigo-50 sm:border sm:border-indigo-100/80"
-                    : "text-slate-400 sm:text-slate-500 hover:text-indigo-500 hover:bg-slate-50"
+                    : "text-slate-400 sm:text-slate-500 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-200"
             }`}
         >
             <div
@@ -112,6 +113,7 @@ function NavItem({ to, icon, label, exact = false, isFloating = false }) {
 
 function Layout() {
     const { logout } = useContext(AuthContext);
+    const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -123,11 +125,11 @@ function Layout() {
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col items-center w-full relative pb-20 sm:pb-0">
             {/* Top Navigation */}
-            <nav className="w-full bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/70 sticky top-0 z-40">
+            <nav className="w-full bg-white/80 dark:bg-[#0F172A]/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex justify-between items-center">
                     {/* Brand */}
                     <div className="flex items-center gap-2.5 text-indigo-900 font-extrabold text-xl tracking-tight">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md shadow-indigo-200/60 flex items-center justify-center text-white text-lg sm:text-xl font-black flex-shrink-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center text-lg sm:text-xl font-black flex-shrink-0">
                             F
                         </div>
                         <div className="hidden sm:flex flex-col leading-none">
@@ -171,6 +173,15 @@ function Layout() {
                             />
                         </div>
 
+                        {/* Theme Toggle */}
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-200 text-slate-600 hover:text-indigo-600 transition-all duration-300 hover:scale-105 active:scale-95 border border-slate-200"
+                            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                        >
+                            {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
+                        </button>
+
                         {/* Logout */}
                         <button
                             onClick={handleLogout}
@@ -193,7 +204,7 @@ function Layout() {
             </footer>
 
             {/* Mobile Bottom Tab Bar */}
-            <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] z-50 flex justify-around items-end pt-2 pb-4 px-1 safe-bottom">
+            <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] z-50 flex justify-around items-end pt-2 pb-4 px-1 safe-bottom">
                 <NavItem
                     to="/"
                     icon={<FiPieChart size={22} />}
