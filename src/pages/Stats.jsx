@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useTheme } from "../context/ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,6 +19,7 @@ import {
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { MetricSkeleton, ChartSkeleton } from "../components/Skeletons.jsx";
 import toast from "react-hot-toast";
+import ScrollReveal from "../components/ScrollReveal.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -29,6 +30,18 @@ export default function Stats() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [monthOffset, setMonthOffset] = useState(0);
+    const [revenueTrendView, setRevenueTrendView] = useState("monthly");
+    const chartContainerRef = useRef(null);
+
+    useEffect(() => {
+        if (chartContainerRef.current) {
+            setTimeout(() => {
+                if (chartContainerRef.current) {
+                    chartContainerRef.current.scrollLeft = chartContainerRef.current.scrollWidth;
+                }
+            }, 50);
+        }
+    }, [revenueTrendView, data]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -232,181 +245,204 @@ export default function Stats() {
                 <div className="max-w-7xl mx-auto px-4 -mt-10 sm:-mt-12">
                     {/* Top Level Metric Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pb-6 mt-6 sm:mt-0">
-                        <AnimatedMetricCard
-                            title="Total Revenue"
-                            value={formatCurrency(overview.totalSales)}
-                            subtitle={revenueSubtitle}
-                            trend={salesTrend}
-                            mom={salesMoM}
-                            icon={FiDollarSign}
-                            color="indigo"
-                            gradient="from-indigo-500/10 to-transparent"
-                        />
-                        <AnimatedMetricCard
-                            title="Net Profit"
-                            value={formatCurrency(overview.totalProfit)}
-                            subtitle={
-                                overview.totalSales > 0
-                                    ? `${profitMargin}% Profit Margin`
-                                    : undefined
-                            }
-                            trend={profitTrend}
-                            mom={profitMoM}
-                            icon={FiTrendingUp}
-                            color="emerald"
-                            gradient="from-emerald-500/10 to-transparent"
-                        />
-                        <AnimatedMetricCard
-                            title="Completed Orders"
-                            value={overview.fulfilledOrders}
-                            subtitle={
-                                aov > 0
-                                    ? `Avg. Rs. ${Math.round(aov)} per order`
-                                    : undefined
-                            }
-                            mom={ordersMoM}
-                            icon={FiShoppingBag}
-                            color="blue"
-                            gradient="from-blue-500/10 to-transparent"
-                        />
-                        <AnimatedMetricCard
-                            title="Action Required"
-                            value={
-                                hasAlerts
-                                    ? formatCurrency(unpaidTotalValue)
-                                    : formatCurrency(0)
-                            }
-                            subtitle={
-                                hasAlerts
-                                    ? `${unpaidCount} Pending Orders`
-                                    : "All caught up"
-                            }
-                            icon={FiAlertCircle}
-                            color="rose"
-                            gradient="from-rose-500/10 to-transparent"
-                            isAlert={hasAlerts}
-                        />
+                        <ScrollReveal delay={0}>
+                            <AnimatedMetricCard
+                                title="Total Revenue"
+                                value={formatCurrency(overview.totalSales)}
+                                subtitle={revenueSubtitle}
+                                trend={salesTrend}
+                                mom={salesMoM}
+                                icon={FiDollarSign}
+                                color="indigo"
+                                gradient="from-indigo-500/10 to-transparent"
+                            />
+                        </ScrollReveal>
+                        <ScrollReveal delay={100}>
+                            <AnimatedMetricCard
+                                title="Net Profit"
+                                value={formatCurrency(overview.totalProfit)}
+                                subtitle={
+                                    overview.totalSales > 0
+                                        ? `${profitMargin}% Profit Margin`
+                                        : undefined
+                                }
+                                trend={profitTrend}
+                                mom={profitMoM}
+                                icon={FiTrendingUp}
+                                color="emerald"
+                                gradient="from-emerald-500/10 to-transparent"
+                            />
+                        </ScrollReveal>
+                        <ScrollReveal delay={200}>
+                            <AnimatedMetricCard
+                                title="Completed Orders"
+                                value={overview.fulfilledOrders}
+                                subtitle={
+                                    aov > 0
+                                        ? `Avg. Rs. ${Math.round(aov)} per order`
+                                        : undefined
+                                }
+                                mom={ordersMoM}
+                                icon={FiShoppingBag}
+                                color="blue"
+                                gradient="from-blue-500/10 to-transparent"
+                            />
+                        </ScrollReveal>
+                        <ScrollReveal delay={300}>
+                            <AnimatedMetricCard
+                                title="Action Required"
+                                value={
+                                    hasAlerts
+                                        ? formatCurrency(unpaidTotalValue)
+                                        : formatCurrency(0)
+                                }
+                                subtitle={
+                                    hasAlerts
+                                        ? `${unpaidCount} Pending Orders`
+                                        : "All caught up"
+                                }
+                                icon={FiAlertCircle}
+                                color="rose"
+                                gradient="from-rose-500/10 to-transparent"
+                                isAlert={hasAlerts}
+                            />
+                        </ScrollReveal>
                     </div>
 
                     {/* Chart Row 1: Trend and Heatmap */}
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
-                        {/* Monthly Sales Trend Chart (RECHARTS) */}
-                        <div className="xl:col-span-2 bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
-                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
-                                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                                    <FiBarChart2 />
-                                </span>
-                                Monthly Revenue Trend
-                            </h3>
-                            <div className="w-full h-56 sm:h-64 flex items-end gap-1 sm:gap-2 text-sm z-10">
-                                {data.monthlySales &&
-                                data.monthlySales.length > 0 ? (
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
+                        {/* Revenue Trend Chart (RECHARTS) */}
+                        <ScrollReveal delay={400} className="xl:col-span-2">
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all h-full">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3 m-0">
+                                    <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                        <FiBarChart2 />
+                                    </span>
+                                    {revenueTrendView === "monthly" ? "Monthly Revenue Trend" : "Daily Revenue Trend"}
+                                </h3>
+                                <div className="flex bg-slate-100/80 p-1 rounded-xl self-start sm:self-auto shrink-0">
+                                    <button
+                                        onClick={() => setRevenueTrendView("monthly")}
+                                        className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                            revenueTrendView === "monthly"
+                                                ? "bg-white text-indigo-600 shadow-sm"
+                                                : "text-slate-500 hover:text-slate-700"
+                                        }`}
                                     >
-                                        <AreaChart data={data.monthlySales}>
-                                            <defs>
-                                                <linearGradient
-                                                    id="colorSales"
-                                                    x1="0"
-                                                    y1="0"
-                                                    x2="0"
-                                                    y2="1"
-                                                >
-                                                    <stop
-                                                        offset="5%"
-                                                        stopColor="#818cf8"
-                                                        stopOpacity={0.8}
-                                                    />
-                                                    <stop
-                                                        offset="95%"
-                                                        stopColor="#818cf8"
-                                                        stopOpacity={0}
-                                                    />
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis
-                                                dataKey="date"
-                                                tickFormatter={(val) =>
-                                                    new Date(
-                                                        val,
-                                                    ).toLocaleString(
-                                                        "default",
-                                                        { month: "short" },
-                                                    )
-                                                }
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{
-                                                    fill: isDark ? "#64748b" : "#94a3b8",
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
-                                                }}
-                                                dy={10}
-                                            />
-                                            <Tooltip
-                                                cursor={{
-                                                    stroke: isDark ? "#334155" : "#cbd5e1",
-                                                    strokeWidth: 1,
-                                                    strokeDasharray: "4 4",
-                                                }}
-                                                contentStyle={{
-                                                    borderRadius: "16px",
-                                                    border: isDark ? "1px solid #1e293b" : "none",
-                                                    boxShadow: isDark
-                                                        ? "0 10px 30px -5px rgba(0,0,0,0.5), 0 0 15px -3px rgba(99,102,241,0.15)"
-                                                        : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-                                                    padding: "12px",
-                                                    backgroundColor: isDark ? "#1e293b" : "#fff",
-                                                    color: isDark ? "#e2e8f0" : "#1e293b",
-                                                }}
-                                                labelFormatter={(val) =>
-                                                    new Date(
-                                                        val,
-                                                    ).toLocaleString(
-                                                        "default",
-                                                        {
-                                                            month: "long",
-                                                            year: "numeric",
-                                                        },
-                                                    )
-                                                }
-                                                formatter={(val) => [
-                                                    formatCurrency(val),
-                                                    "Revenue",
-                                                ]}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="totalSales"
-                                                stroke="#6366f1"
-                                                strokeWidth={3}
-                                                fillOpacity={1}
-                                                fill="url(#colorSales)"
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <EmptyState
-                                        message="No monthly sales data yet."
-                                        icon={FiBarChart2}
-                                    />
-                                )}
+                                        Monthly
+                                    </button>
+                                    <button
+                                        onClick={() => setRevenueTrendView("daily")}
+                                        className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                            revenueTrendView === "daily"
+                                                ? "bg-white text-indigo-600 shadow-sm"
+                                                : "text-slate-500 hover:text-slate-700"
+                                        }`}
+                                    >
+                                        Daily
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                            <div 
+                                className="w-full h-56 sm:h-64 overflow-x-auto hide-scrollbar z-10 rounded-xl"
+                                ref={chartContainerRef}
+                            >
+                                <div className="min-w-[600px] sm:min-w-0 w-full h-full">
+                                    {revenueTrendView === "monthly" ? (
+                                        data.monthlySales && data.monthlySales.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={data.monthlySales}>
+                                                    <defs>
+                                                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8} />
+                                                            <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        tickFormatter={(val) => new Date(val).toLocaleString("default", { month: "short" })}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: isDark ? "#64748b" : "#94a3b8", fontSize: 12, fontWeight: 600 }}
+                                                        dy={10}
+                                                    />
+                                                    <Tooltip
+                                                        cursor={{ stroke: isDark ? "#334155" : "#cbd5e1", strokeWidth: 1, strokeDasharray: "4 4" }}
+                                                        contentStyle={{
+                                                            borderRadius: "16px",
+                                                            border: isDark ? "1px solid #1e293b" : "none",
+                                                            boxShadow: isDark ? "0 10px 30px -5px rgba(0,0,0,0.5), 0 0 15px -3px rgba(99,102,241,0.15)" : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+                                                            padding: "12px",
+                                                            backgroundColor: isDark ? "#1e293b" : "#fff",
+                                                            color: isDark ? "#e2e8f0" : "#1e293b",
+                                                        }}
+                                                        labelFormatter={(val) => new Date(val).toLocaleString("default", { month: "long", year: "numeric" })}
+                                                        formatter={(val) => [formatCurrency(val), "Revenue"]}
+                                                    />
+                                                    <Area type="monotone" dataKey="totalSales" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <EmptyState message="No monthly sales data yet." icon={FiBarChart2} />
+                                        )
+                                    ) : (
+                                        data.dailyActivity && data.dailyActivity.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={data.dailyActivity}>
+                                                    <defs>
+                                                        <linearGradient id="colorSalesDaily" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8} />
+                                                            <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <XAxis 
+                                                        dataKey="day" 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{ fill: isDark ? "#64748b" : "#94a3b8", fontSize: 12, fontWeight: 600 }}
+                                                        tickFormatter={(val) => `Day ${val}`}
+                                                        dy={10} 
+                                                    />
+                                                    <Tooltip 
+                                                        cursor={{ stroke: isDark ? "#334155" : "#cbd5e1", strokeWidth: 1, strokeDasharray: "4 4" }}
+                                                        contentStyle={{
+                                                            borderRadius: "16px",
+                                                            border: isDark ? "1px solid #1e293b" : "none",
+                                                            boxShadow: isDark ? "0 10px 30px -5px rgba(0,0,0,0.5), 0 0 15px -3px rgba(99,102,241,0.15)" : "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+                                                            padding: "12px",
+                                                            backgroundColor: isDark ? "#1e293b" : "#fff",
+                                                            color: isDark ? "#e2e8f0" : "#1e293b",
+                                                        }}
+                                                        labelFormatter={(val) => `Day ${val}`}
+                                                        formatter={(val) => [formatCurrency(val), "Revenue"]}
+                                                    />
+                                                    <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSalesDaily)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <EmptyState message="No daily sales data yet." icon={FiBarChart2} />
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                            </div>
+                        </ScrollReveal>
 
                         {/* Daily Activity Heatmap */}
-                        <ActivityHeatmap
-                            dailyActivity={dailyActivity}
-                            monthOffset={monthOffset}
-                        />
+                        <ScrollReveal delay={500}>
+                            <ActivityHeatmap
+                                dailyActivity={dailyActivity}
+                                monthOffset={monthOffset}
+                            />
+                        </ScrollReveal>
                     </div>
 
                     {/* Charts Row */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                         {/* Top Flowers CSS Chart — with profit margin (#14) */}
-                        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+                        <ScrollReveal delay={100}>
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all h-full">
                             <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
                                 <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                                     <FiBarChart2 />
@@ -500,10 +536,12 @@ export default function Stats() {
                                     />
                                 )}
                             </div>
-                        </div>
+                            </div>
+                        </ScrollReveal>
 
                         {/* Revenue By Location CSS Chart */}
-                        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+                        <ScrollReveal delay={200}>
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all h-full">
                             <h3 className="text-xl font-bold text-slate-800 mb-8 flex items-center gap-3">
                                 <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                                     <FiActivity />
@@ -555,13 +593,15 @@ export default function Stats() {
                                     />
                                 )}
                             </div>
-                        </div>
+                            </div>
+                        </ScrollReveal>
                     </div>
 
                     {/* Bottom Row Lists */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                         {/* Recent Activity Timeline */}
-                        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60">
+                        <ScrollReveal delay={100}>
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 h-full">
                             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 Activity Timeline
                             </h3>
@@ -658,9 +698,11 @@ export default function Stats() {
                                 )}
                             </div>
                         </div>
+                        </ScrollReveal>
 
                         {/* Top Buyers */}
-                        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col">
+                        <ScrollReveal delay={200}>
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col h-full">
                             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 Lifetime Top Buyers
                             </h3>
@@ -713,9 +755,11 @@ export default function Stats() {
                                 )}
                             </div>
                         </div>
+                        </ScrollReveal>
 
                         {/* Top Debtors */}
-                        <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col">
+                        <ScrollReveal delay={300}>
+                            <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col h-full">
                             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <span className="p-2 bg-rose-50 text-rose-600 rounded-xl">
                                     <FiAlertCircle />
@@ -772,6 +816,7 @@ export default function Stats() {
                                 )}
                             </div>
                         </div>
+                        </ScrollReveal>
                     </div>
                 </div>
             </div>

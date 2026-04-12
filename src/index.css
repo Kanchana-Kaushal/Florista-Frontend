@@ -203,6 +203,16 @@ body {
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
+/* ── Hide scrollbar class ───────────────────────────────────────────── */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+
 /* ── Focus ring: consistent indigo outline on all inputs ────────────── */
 input:focus-visible,
 select:focus-visible,
