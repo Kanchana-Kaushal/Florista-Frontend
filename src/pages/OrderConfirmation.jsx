@@ -149,15 +149,14 @@ export default function OrderConfirmation() {
                         <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
 
                         <div className="text-center mb-6 pt-2">
-                            <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
-                                F
-                            </div>
-                            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-                                Florista ERP
+                            <img
+                                src="/light-logo.png"
+                                alt="Logo"
+                                className="h-10 md:h-12 w-auto mx-auto mb-2 object-contain"
+                            />
+                            <h1 className="text-sm font-semibold text-slate-400 tracking-[20px] pt-4 uppercase">
+                                INVOICE
                             </h1>
-                            <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">
-                                Official Receipt
-                            </p>
                         </div>
 
                         <div className="border-t border-b border-dashed border-slate-300 py-4 mb-5 text-sm text-slate-600 grid grid-cols-2 gap-y-2">

@@ -44,8 +44,8 @@ export default function Login() {
         </div>
         
         <div className="relative z-10 max-w-lg">
-          <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl font-bold mb-8 shadow-2xl border border-white/20">
-            F
+          <div className="mb-10">
+            <img src="/dark-logo.png" alt="Florista Logo" className="h-16 w-auto object-contain" />
           </div>
           <h1 className="text-5xl font-extrabold mb-6 tracking-tight leading-tight">
             Manage your <br/> floral enterprise <br/> with Florista.

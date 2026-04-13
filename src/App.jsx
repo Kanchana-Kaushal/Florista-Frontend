@@ -129,17 +129,11 @@ function Layout() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex justify-between items-center">
                     {/* Brand */}
                     <div className="flex items-center gap-2.5 text-indigo-900 font-extrabold text-xl tracking-tight">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center text-lg sm:text-xl font-black flex-shrink-0">
-                            F
-                        </div>
-                        <div className="hidden sm:flex flex-col leading-none">
-                            <span className="text-slate-900 font-black tracking-tight">
-                                Florista
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
-                                ERP System
-                            </span>
-                        </div>
+                        <img
+                            src={isDark ? "/dark-logo.png" : "/light-logo.png"}
+                            alt="Florista Logo"
+                            className="h-8 sm:h-10 w-auto object-contain flex-shrink-0"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4">
@@ -177,9 +171,17 @@ function Layout() {
                         <button
                             onClick={toggleTheme}
                             className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-200 text-slate-600 hover:text-indigo-600 transition-all duration-300 hover:scale-105 active:scale-95 border border-slate-200"
-                            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                            title={
+                                isDark
+                                    ? "Switch to light mode"
+                                    : "Switch to dark mode"
+                            }
                         >
-                            {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
+                            {isDark ? (
+                                <FiSun size={18} />
+                            ) : (
+                                <FiMoon size={18} />
+                            )}
                         </button>
 
                         {/* Logout */}
