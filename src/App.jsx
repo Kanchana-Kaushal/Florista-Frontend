@@ -18,6 +18,7 @@ import {
     FiLogOut,
     FiSun,
     FiMoon,
+    FiSearch,
 } from "react-icons/fi";
 import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
 import { useTheme } from "./context/ThemeContext.jsx";
@@ -63,47 +64,73 @@ function About() {
     );
 }
 
-function NavItem({ to, icon, label, exact = false, isFloating = false }) {
+/* ── Desktop NavItem (unchanged for sm+ breakpoints) ──────────────────── */
+function NavItem({ to, icon, label, exact = false }) {
     const location = useLocation();
     const isActive = exact
         ? location.pathname === to
         : (location.pathname.startsWith(to) && to !== "/") ||
           (to === "/" && location.pathname === "/");
 
-    if (isFloating) {
-        return (
-            <Link
-                to={to}
-                className="flex flex-col items-center justify-center -mt-6"
+    return (
+        <Link
+            to={to}
+            className={`flex flex-row items-center gap-2 px-4 py-1.5 rounded-2xl transition-all duration-200 text-sm font-medium select-none ${
+                isActive
+                    ? "text-indigo-600 bg-indigo-50 border border-indigo-100/80"
+                    : "text-slate-500 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-200"
+            }`}
+        >
+            {icon}
+            <span
+                className={`text-sm ${
+                    isActive ? "font-black text-indigo-600" : "font-medium"
+                }`}
             >
-                <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 border-4 border-slate-50 dark:border-[#0B0F19] relative z-10 transition-transform hover:scale-105 active:scale-95">
-                    <span className="text-[#ffffff]">{icon}</span>
-                </div>
-                <span className="text-[10px] font-black text-indigo-700 mt-1 tracking-tight">
-                    {label}
-                </span>
-            </Link>
-        );
-    }
+                {label}
+            </span>
+        </Link>
+    );
+}
+
+/* ── Mobile Bottom Tab Item ────────────────────────────────────────────── */
+function MobileTabItem({ to, icon, label, exact = false }) {
+    const location = useLocation();
+    const isActive = exact
+        ? location.pathname === to
+        : (location.pathname.startsWith(to) && to !== "/") ||
+          (to === "/" && location.pathname === "/");
 
     return (
         <Link
             to={to}
-            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-1.5 rounded-2xl transition-all duration-200 text-sm font-medium select-none ${
+            className={`mobile-tab-item flex items-center justify-center rounded-full transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] select-none relative ${
                 isActive
-                    ? "text-indigo-600 bg-indigo-50 sm:border sm:border-indigo-100/80"
-                    : "text-slate-400 sm:text-slate-500 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-200"
+                    ? "mobile-tab-active"
+                    : "mobile-tab-inactive"
             }`}
+            style={{
+                padding: isActive ? "8px 18px" : "10px",
+                gap: isActive ? "8px" : "0",
+                minWidth: isActive ? "auto" : "44px",
+                height: "44px",
+            }}
         >
             <div
-                className={`transition-all duration-200 ${isActive ? "scale-110 sm:scale-100" : ""}`}
+                className="transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex-shrink-0 flex items-center justify-center"
+                style={{
+                    transform: isActive ? "scale(1.05)" : "scale(1)",
+                }}
             >
                 {icon}
             </div>
             <span
-                className={`text-[10px] sm:text-sm mt-0.5 sm:mt-0 ${
-                    isActive ? "font-black text-indigo-600" : "font-medium"
-                }`}
+                className="font-bold text-sm whitespace-nowrap transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden"
+                style={{
+                    maxWidth: isActive ? "80px" : "0px",
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? "translateX(0)" : "translateX(-4px)",
+                }}
             >
                 {label}
             </span>
@@ -205,35 +232,46 @@ function Layout() {
                 Built for florists
             </footer>
 
-            {/* Mobile Bottom Tab Bar */}
-            <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] z-50 flex justify-around items-end pt-2 pb-4 px-1 safe-bottom">
-                <NavItem
-                    to="/"
-                    icon={<FiPieChart size={22} />}
-                    label="Home"
-                    exact={true}
-                />
-                <NavItem
-                    to="/orders"
-                    icon={<FiShoppingBag size={22} />}
-                    label="Orders"
-                />
-                <NavItem
-                    to="/new-order"
-                    icon={<FiPlus size={28} />}
-                    label="New"
-                    isFloating={true}
-                />
-                <NavItem
-                    to="/flowers"
-                    icon={<FiArchive size={22} />}
-                    label="Stock"
-                />
-                <NavItem
-                    to="/buyers"
-                    icon={<FiUsers size={22} />}
-                    label="Buyers"
-                />
+            {/* Mobile Bottom Tab Bar — Floating Pill Style */}
+            <div className="sm:hidden fixed bottom-0 left-0 w-full z-50 safe-bottom" style={{ pointerEvents: "none" }}>
+                <div className="flex items-center justify-center gap-3 px-4 pb-3 pt-1" style={{ pointerEvents: "none" }}>
+                    {/* Pill Container */}
+                    <div
+                        className="mobile-nav-pill flex items-center gap-1 px-2 py-1.5"
+                        style={{ pointerEvents: "auto" }}
+                    >
+                        <MobileTabItem
+                            to="/"
+                            icon={<FiHome size={20} strokeWidth={2.2} />}
+                            label="Home"
+                            exact={true}
+                        />
+                        <MobileTabItem
+                            to="/orders"
+                            icon={<FiShoppingBag size={20} strokeWidth={2.2} />}
+                            label="Orders"
+                        />
+                        <MobileTabItem
+                            to="/flowers"
+                            icon={<FiArchive size={20} strokeWidth={2.2} />}
+                            label="Stock"
+                        />
+                        <MobileTabItem
+                            to="/buyers"
+                            icon={<FiUsers size={20} strokeWidth={2.2} />}
+                            label="Buyers"
+                        />
+                    </div>
+
+                    {/* Floating New Order FAB */}
+                    <Link
+                        to="/new-order"
+                        className="mobile-fab flex items-center justify-center"
+                        style={{ pointerEvents: "auto" }}
+                    >
+                        <FiPlus size={26} strokeWidth={2.5} />
+                    </Link>
+                </div>
             </div>
         </div>
     );
