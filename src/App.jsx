@@ -32,6 +32,7 @@ import Orders from "./pages/Orders.jsx";
 import EditOrder from "./pages/EditOrder.jsx";
 import SettleOrders from "./pages/SettleOrders.jsx";
 import Buyers from "./pages/Buyers.jsx";
+import FlowerSales from "./pages/FlowerSales.jsx";
 import toast from "react-hot-toast";
 
 function About() {
@@ -285,6 +286,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                     <Route element={<Layout />}>
                         <Route path="/" element={<Stats />} />
+                        <Route path="/flower-sales" element={<FlowerSales />} />
                         <Route path="/new-order" element={<NewOrder />} />
                         <Route
                             path="/confirm-order"

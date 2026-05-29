@@ -443,12 +443,21 @@ export default function Stats() {
                         {/* Top Flowers CSS Chart — with profit margin (#14) */}
                         <ScrollReveal delay={100}>
                             <div className="bg-white p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/60 flex flex-col min-h-[380px] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all h-full">
-                            <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                                <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                                    <FiBarChart2 />
-                                </span>
-                                Top Selling Flowers
-                            </h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+                                    <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                                        <FiBarChart2 />
+                                    </span>
+                                    Top Selling Flowers
+                                </h3>
+                                <button
+                                    onClick={() => navigate("/flower-sales")}
+                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100/50 transition-all cursor-pointer flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100/50"
+                                    title="View detailed flower sales report"
+                                >
+                                    View Details ↗
+                                </button>
+                            </div>
                             <p className="text-xs text-slate-400 font-semibold mb-6 ml-1">
                                 Revenue · Profit margin · Units sold
                             </p>
