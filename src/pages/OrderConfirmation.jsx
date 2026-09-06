@@ -68,6 +68,11 @@ export default function OrderConfirmation() {
 
             const res = await axios.post(`${API_URL}/orders`, payload);
             setConfirmedOrder(res.data);
+            try {
+                sessionStorage.removeItem("florista_new_order_draft");
+            } catch (e) {
+                console.error("Error clearing order draft:", e);
+            }
             toast.success("Order confirmed successfully!");
         } catch (error) {
             toast.error(
@@ -282,7 +287,18 @@ export default function OrderConfirmation() {
         <div className="w-full max-w-4xl mx-auto space-y-6">
             <div className="flex items-center gap-4">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() =>
+                        navigate("/new-order", {
+                            state: {
+                                buyer,
+                                cart,
+                                includePackingFee: location.state?.includePackingFee,
+                                packingFeeCost: location.state?.packingFeeCost,
+                                packingFeePrice: location.state?.packingFeePrice,
+                                packingFeeFlower: location.state?.packingFeeFlower,
+                            },
+                        })
+                    }
                     className="p-2.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 text-slate-600 transition-all hover:scale-105"
                 >
                     <FiArrowLeft size={20} />
@@ -346,8 +362,14 @@ export default function OrderConfirmation() {
                                             <input
                                                 type="number"
                                                 min="0"
+                                                placeholder="0"
                                                 className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800"
-                                                value={item.cost || ""}
+                                                value={
+                                                    item.cost === 0 || item.cost === ""
+                                                        ? ""
+                                                        : item.cost
+                                                }
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         index,
@@ -364,8 +386,14 @@ export default function OrderConfirmation() {
                                             <input
                                                 type="number"
                                                 min="0"
+                                                placeholder="0"
                                                 className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800"
-                                                value={item.price || ""}
+                                                value={
+                                                    item.price === 0 || item.price === ""
+                                                        ? ""
+                                                        : item.price
+                                                }
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         index,
@@ -382,12 +410,14 @@ export default function OrderConfirmation() {
                                             <input
                                                 type="number"
                                                 min="1"
+                                                placeholder="0"
                                                 className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-slate-800 text-center"
                                                 value={
-                                                    item.qty === ""
+                                                    item.qty === "" || item.qty === 0
                                                         ? ""
                                                         : item.qty
                                                 }
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     handleItemChange(
@@ -398,31 +428,15 @@ export default function OrderConfirmation() {
                                                             : Number(val),
                                                     );
                                                 }}
-                                                onFocus={(e) => {
-                                                    e.target.setAttribute(
-                                                        "data-prev",
-                                                        item.qty,
-                                                    );
-                                                    handleItemChange(
-                                                        index,
-                                                        "qty",
-                                                        "",
-                                                    );
-                                                }}
-                                                onBlur={(e) => {
+                                                onBlur={() => {
                                                     if (
                                                         item.qty === "" ||
                                                         item.qty <= 0
                                                     ) {
-                                                        const prev = Number(
-                                                            e.target.getAttribute(
-                                                                "data-prev",
-                                                            ),
-                                                        );
                                                         handleItemChange(
                                                             index,
                                                             "qty",
-                                                            prev || 1,
+                                                            1,
                                                         );
                                                     }
                                                 }}
@@ -456,10 +470,14 @@ export default function OrderConfirmation() {
                             <input
                                 type="number"
                                 min="0"
+                                placeholder="0"
                                 className="w-28 p-2 bg-white border border-indigo-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-right font-bold text-indigo-900 shadow-sm"
-                                value={discount}
+                                value={discount === 0 || discount === "" ? "" : discount}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) =>
-                                    setDiscount(Number(e.target.value))
+                                    setDiscount(
+                                        e.target.value === "" ? 0 : Number(e.target.value),
+                                    )
                                 }
                             />
                         </div>
