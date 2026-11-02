@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -11,11 +11,13 @@ import {
     FiPackage,
     FiRotateCcw,
 } from "react-icons/fi";
+import { useTheme } from '../context/ThemeContext.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function NewOrder() {
     const navigate = useNavigate();
+    const { showKeyboardHints } = useTheme();
     const location = useLocation();
 
     // Helper to load initial draft memory from location.state or sessionStorage
@@ -42,6 +44,12 @@ export default function NewOrder() {
     };
 
     const initialDraft = loadInitialDraft();
+
+    // Desktop keyboard refs & highlight state
+    const buyerInputRef = useRef(null);
+    const flowerInputRef = useRef(null);
+    const [buyerHighlightIndex, setBuyerHighlightIndex] = useState(-1);
+    const [flowerHighlightIndex, setFlowerHighlightIndex] = useState(-1);
 
     // Buyer state
     const [buyerSearch, setBuyerSearch] = useState("");
@@ -158,6 +166,99 @@ export default function NewOrder() {
             setFlowers([]);
         }
     }, [flowerSearch, isCustomMode]);
+
+    // Keep active dropdown index updated
+    useEffect(() => {
+        setBuyerHighlightIndex(buyers.length > 0 ? 0 : -1);
+    }, [buyers]);
+
+    useEffect(() => {
+        setFlowerHighlightIndex(flowers.length > 0 ? 0 : -1);
+    }, [flowers]);
+
+    // Scroll active item into view
+    useEffect(() => {
+        if (buyerHighlightIndex >= 0) {
+            document.getElementById(`buyer-opt-${buyerHighlightIndex}`)?.scrollIntoView({ block: "nearest" });
+        }
+    }, [buyerHighlightIndex]);
+
+    useEffect(() => {
+        if (flowerHighlightIndex >= 0) {
+            document.getElementById(`flower-opt-${flowerHighlightIndex}`)?.scrollIntoView({ block: "nearest" });
+        }
+    }, [flowerHighlightIndex]);
+
+    // Auto-focus on initial mount
+    useEffect(() => {
+        if (!selectedBuyer && !isCreatingBuyer) {
+            buyerInputRef.current?.focus();
+        } else if (selectedBuyer && !isCustomMode) {
+            flowerInputRef.current?.focus();
+        }
+    }, []);
+
+    const selectBuyer = (b) => {
+        setSelectedBuyer(b);
+        setBuyerSearch("");
+        setBuyers([]);
+        setBuyerHighlightIndex(-1);
+        setTimeout(() => {
+            flowerInputRef.current?.focus();
+        }, 50);
+    };
+
+    const handleChangeBuyer = () => {
+        setSelectedBuyer(null);
+        setTimeout(() => {
+            buyerInputRef.current?.focus();
+        }, 50);
+    };
+
+    const handleBuyerSearchKeyDown = (e) => {
+        if (buyers.length > 0) {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setBuyerHighlightIndex((prev) => (prev + 1 >= buyers.length ? 0 : prev + 1));
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setBuyerHighlightIndex((prev) => (prev <= 0 ? buyers.length - 1 : prev - 1));
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                const target = buyerHighlightIndex >= 0 ? buyers[buyerHighlightIndex] : buyers[0];
+                if (target) {
+                    selectBuyer(target);
+                }
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                setBuyers([]);
+                setBuyerHighlightIndex(-1);
+            }
+        }
+    };
+
+    const handleFlowerSearchKeyDown = (e) => {
+        if (flowers.length > 0) {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setFlowerHighlightIndex((prev) => (prev + 1 >= flowers.length ? 0 : prev + 1));
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setFlowerHighlightIndex((prev) => (prev <= 0 ? flowers.length - 1 : prev - 1));
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                const target = flowerHighlightIndex >= 0 ? flowers[flowerHighlightIndex] : flowers[0];
+                if (target) {
+                    addFlowerToCart(target);
+                    flowerInputRef.current?.focus();
+                }
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                setFlowers([]);
+                setFlowerHighlightIndex(-1);
+            }
+        }
+    };
 
     const handleCreateBuyer = async (e) => {
         e.preventDefault();
@@ -283,6 +384,36 @@ export default function NewOrder() {
         toast.success("Draft cleared");
     };
 
+    // Desktop Global Keyboard Shortcuts
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                proceedToConfirm();
+            }
+            if (e.altKey && (e.key === "c" || e.key === "C")) {
+                e.preventDefault();
+                setIsCustomMode((prev) => !prev);
+            }
+            if (e.altKey && (e.key === "b" || e.key === "B")) {
+                e.preventDefault();
+                if (selectedBuyer) {
+                    handleChangeBuyer();
+                } else {
+                    buyerInputRef.current?.focus();
+                }
+            }
+            if (e.altKey && (e.key === "i" || e.key === "I" || e.key === "f" || e.key === "F")) {
+                e.preventDefault();
+                if (!isCustomMode) {
+                    flowerInputRef.current?.focus();
+                }
+            }
+        };
+        window.addEventListener("keydown", handleGlobalKeyDown);
+        return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    }, [selectedBuyer, cart, includePackingFee, packingFeeCost, packingFeePrice, packingFeeFlower, isCustomMode]);
+
     return (
         <div className="w-full max-w-5xl mx-auto space-y-6">
             <div className="flex justify-between items-center">
@@ -297,6 +428,32 @@ export default function NewOrder() {
                     </button>
                 )}
             </div>
+                        {/* Desktop Keyboard Hints */}
+            {showKeyboardHints && (<div className="hidden md:flex flex-wrap items-center justify-between bg-indigo-50/70 border border-indigo-100 px-4 py-2 rounded-xl text-xs text-slate-600 shadow-xs">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-bold text-indigo-700 flex items-center gap-1.5">
+                        ⌨️ Keyboard Navigation:
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-white rounded shadow-xs border border-slate-200 font-mono text-[11px]">↑ / ↓</kbd> Navigate List
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-white rounded shadow-xs border border-slate-200 font-mono text-[11px]">Enter</kbd> Select / Add
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-white rounded shadow-xs border border-slate-200 font-mono text-[11px]">Tab</kbd> Next Field
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 bg-white rounded shadow-xs border border-slate-200 font-mono text-[11px]">Esc</kbd> Close Dropdown
+                    </span>
+                </div>
+                <div className="flex items-center gap-2 font-medium">
+                    <span className="text-slate-500">Shortcuts:</span>
+                    <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Alt+B</kbd> Buyer</span>
+                    <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Alt+I</kbd> Inventory</span>
+                    <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Ctrl+Enter</kbd> Proceed</span>
+                </div>
+            </div>)}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column: Buyer & Items Selection */}
                 <div className="space-y-6">
@@ -308,10 +465,12 @@ export default function NewOrder() {
                             </h2>
                             {selectedBuyer && (
                                 <button
-                                    onClick={() => setSelectedBuyer(null)}
-                                    className="text-sm text-indigo-600 hover:underline"
+                                    type="button"
+                                    onClick={handleChangeBuyer}
+                                    tabIndex={0}
+                                    className="text-sm text-indigo-600 hover:text-indigo-800 font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500"
                                 >
-                                    Change
+                                    Change (Alt+B)
                                 </button>
                             )}
                         </div>
@@ -422,35 +581,59 @@ export default function NewOrder() {
                                         <FiSearch />
                                     </div>
                                     <input
+                                        ref={buyerInputRef}
                                         type="text"
-                                        placeholder="Search by name, phone, or location..."
+                                        role="combobox"
+                                        aria-expanded={buyers.length > 0}
+                                        aria-autocomplete="list"
+                                        placeholder="Search by name, phone, or location... (Alt+B)"
                                         className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-white text-slate-900 shadow-sm"
                                         value={buyerSearch}
-                                        onChange={(e) =>
-                                            setBuyerSearch(e.target.value)
-                                        }
+                                        onChange={(e) => setBuyerSearch(e.target.value)}
+                                        onKeyDown={handleBuyerSearchKeyDown}
                                     />
                                     {buyers.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                            {buyers.map((b) => (
-                                                <div
-                                                    key={b._id}
-                                                    onClick={() => {
-                                                        setSelectedBuyer(b);
-                                                        setBuyerSearch("");
-                                                        setBuyers([]);
-                                                    }}
-                                                    className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
-                                                >
-                                                    <p className="font-medium text-slate-800">
-                                                        {b.name}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">
-                                                        {b.telephone} •{" "}
-                                                        {b.location}
-                                                    </p>
-                                                </div>
-                                            ))}
+                                        <div
+                                            role="listbox"
+                                            className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                                        >
+                                            {buyers.map((b, idx) => {
+                                                const isHighlighted = idx === buyerHighlightIndex;
+                                                return (
+                                                    <div
+                                                        id={'buyer-opt-' + idx}
+                                                        role="option"
+                                                        aria-selected={isHighlighted}
+                                                        tabIndex={0}
+                                                        key={b._id}
+                                                        onClick={() => selectBuyer(b)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                e.preventDefault();
+                                                                selectBuyer(b);
+                                                            }
+                                                        }}
+                                                        className={'p-3 cursor-pointer border-b border-slate-100 last:border-0 transition-colors ' +
+                                                            (isHighlighted
+                                                                ? 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-400 font-semibold'
+                                                                : 'hover:bg-slate-50')}
+                                                    >
+                                                        <div className="flex justify-between items-center">
+                                                            <p className={'font-medium ' + (isHighlighted ? 'text-indigo-900 font-bold' : 'text-slate-800')}>
+                                                                {b.name}
+                                                            </p>
+                                                            {isHighlighted && (
+                                                                <span className="text-[10px] uppercase font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded shadow-xs">
+                                                                    Enter ↵
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-slate-500">
+                                                            {b.telephone} • {b.location}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -579,40 +762,71 @@ export default function NewOrder() {
                                     <FiSearch />
                                 </div>
                                 <input
+                                    ref={flowerInputRef}
                                     type="text"
-                                    placeholder="Search flowers by name..."
+                                    role="combobox"
+                                    aria-expanded={flowers.length > 0}
+                                    aria-autocomplete="list"
+                                    placeholder="Search flowers by name... (Alt+I)"
                                     className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm bg-white text-slate-900"
                                     value={flowerSearch}
-                                    onChange={(e) =>
-                                        setFlowerSearch(e.target.value)
-                                    }
+                                    onChange={(e) => setFlowerSearch(e.target.value)}
+                                    onKeyDown={handleFlowerSearchKeyDown}
                                 />
                                 {flowers.length > 0 && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto ring-1 ring-black ring-opacity-5">
-                                        {flowers.map((f) => (
-                                            <div
-                                                key={f._id}
-                                                className="p-3 hover:bg-indigo-50 cursor-pointer flex justify-between items-center group transition-colors border-b border-slate-100 last:border-0"
-                                                onClick={() =>
-                                                    addFlowerToCart(f)
-                                                }
-                                            >
-                                                <div>
-                                                    <p className="font-medium text-slate-800 group-hover:text-indigo-700">
-                                                        {f.name}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">
-                                                        Cost: Rs. {f.costPrice}
-                                                    </p>
+                                    <div
+                                        role="listbox"
+                                        className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto ring-1 ring-black ring-opacity-5"
+                                    >
+                                        {flowers.map((f, idx) => {
+                                            const isHighlighted = idx === flowerHighlightIndex;
+                                            return (
+                                                <div
+                                                    id={'flower-opt-' + idx}
+                                                    role="option"
+                                                    aria-selected={isHighlighted}
+                                                    tabIndex={0}
+                                                    key={f._id}
+                                                    className={'p-3 cursor-pointer flex justify-between items-center group transition-colors border-b border-slate-100 last:border-0 ' +
+                                                        (isHighlighted
+                                                            ? 'bg-indigo-50 ring-1 ring-indigo-400 font-semibold'
+                                                            : 'hover:bg-indigo-50')}
+                                                    onClick={() => {
+                                                        addFlowerToCart(f);
+                                                        flowerInputRef.current?.focus();
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            addFlowerToCart(f);
+                                                            flowerInputRef.current?.focus();
+                                                        }
+                                                    }}
+                                                >
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={'font-medium ' + (isHighlighted ? 'text-indigo-700 font-bold' : 'text-slate-800 group-hover:text-indigo-700')}>
+                                                                {f.name}
+                                                            </p>
+                                                            {isHighlighted && (
+                                                                <span className="text-[10px] uppercase font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded shadow-xs">
+                                                                    Enter ↵
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-slate-500">
+                                                            Cost: Rs. {f.costPrice}
+                                                        </p>
+                                                    </div>
+                                                    <div className="font-semibold text-indigo-600 bg-white px-3 py-1 rounded-full shadow-xs text-sm border border-indigo-100">
+                                                        Rs. {f.sellingPrice}{' '}
+                                                        <span className="text-slate-400 text-xs font-normal">
+                                                            /unit
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="font-semibold text-indigo-600 bg-white px-3 py-1 rounded-full shadow-sm text-sm border border-indigo-100">
-                                                    Rs. {f.sellingPrice}{" "}
-                                                    <span className="text-slate-400 text-xs font-normal">
-                                                        /unit
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -660,7 +874,7 @@ export default function NewOrder() {
                                     </div>
                                     <button
                                         onClick={() => removeFromCart(index)}
-                                        className="text-rose-400 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        tabIndex={0} aria-label="Remove item" className="text-rose-400 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-rose-500"
                                     >
                                         <FiTrash2 />
                                     </button>
@@ -687,10 +901,17 @@ export default function NewOrder() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setIncludePackingFee(!includePackingFee)
-                                }
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${includePackingFee ? "bg-indigo-600" : "bg-slate-300"}`}
+                                onClick={() => setIncludePackingFee(!includePackingFee)}
+                                tabIndex={0}
+                                role="switch"
+                                aria-checked={includePackingFee}
+                                onKeyDown={(e) => {
+                                    if (e.key === ' ' || e.key === 'Enter') {
+                                        e.preventDefault();
+                                        setIncludePackingFee(!includePackingFee);
+                                    }
+                                }}
+                                className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus:outline-none ' + (includePackingFee ? 'bg-indigo-600' : 'bg-slate-300')}
                             >
                                 <span
                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${includePackingFee ? "translate-x-6" : "translate-x-1"}`}

@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import {
     Routes,
     Route,
@@ -141,8 +141,42 @@ function MobileTabItem({ to, icon, label, exact = false }) {
 
 function Layout() {
     const { logout } = useContext(AuthContext);
-    const { isDark, toggleTheme } = useTheme();
+    const { isDark, toggleTheme, showKeyboardHints, toggleKeyboardHints } = useTheme();
     const navigate = useNavigate();
+
+
+    // Global Desktop Navigation Shortcuts
+    useEffect(() => {
+        const handleNavShortcuts = (e) => {
+            if (e.altKey) {
+                if (e.key === '1') {
+                    e.preventDefault();
+                    navigate('/');
+                } else if (e.key === '2') {
+                    e.preventDefault();
+                    navigate('/orders');
+                } else if (e.key === '3') {
+                    e.preventDefault();
+                    navigate('/new-order');
+                } else if (e.key === '4') {
+                    e.preventDefault();
+                    navigate('/flowers');
+                } else if (e.key === '5') {
+                    e.preventDefault();
+                    navigate('/buyers');
+                } else if (e.key === 't' || e.key === 'T') {
+                    e.preventDefault();
+                    toggleTheme();
+                } else if (e.key === 'k' || e.key === 'K') {
+                    e.preventDefault();
+                    toggleKeyboardHints();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleNavShortcuts);
+        return () => window.removeEventListener('keydown', handleNavShortcuts);
+    }, [navigate, toggleTheme, toggleKeyboardHints]);
 
     const handleLogout = () => {
         logout();

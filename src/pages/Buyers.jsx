@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,6 +26,9 @@ export default function Buyers() {
     const [buyers, setBuyers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const nameInputRef = useRef(null);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
+
 
     // CRUD Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -142,6 +145,89 @@ export default function Buyers() {
         }
     };
 
+
+    // Auto-focus first input when modal opens
+    useEffect(() => {
+        if (isModalOpen) {
+            setTimeout(() => nameInputRef.current?.focus(), 50);
+        }
+    }, [isModalOpen]);
+
+    // Keep selection in bounds
+    useEffect(() => {
+        if (buyers.length > 0 && selectedIndex >= buyers.length) {
+            setSelectedIndex(buyers.length - 1);
+        }
+    }, [buyers]);
+
+    // Auto-scroll selected row into view
+    useEffect(() => {
+        if (selectedIndex >= 0) {
+            document.getElementById('buyer-row-' + selectedIndex)?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [selectedIndex]);
+
+    // Desktop Keyboard Navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (isModalOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCloseModal();
+                }
+                return;
+            }
+
+            if (historyBuyer) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeOrderHistory();
+                }
+                return;
+            }
+
+            if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+                e.preventDefault();
+                handleOpenModal();
+                return;
+            }
+
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const isInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+            const isSearch = document.activeElement && document.activeElement.getAttribute('placeholder')?.includes('Search');
+
+            if (e.key === 'ArrowDown') {
+                if (buyers.length > 0) {
+                    e.preventDefault();
+                    setSelectedIndex((prev) => (prev + 1 >= buyers.length ? 0 : prev + 1));
+                }
+            } else if (e.key === 'ArrowUp') {
+                if (buyers.length > 0) {
+                    e.preventDefault();
+                    setSelectedIndex((prev) => (prev <= 0 ? buyers.length - 1 : prev - 1));
+                }
+            } else if (e.key === 'Enter' && (!isInput || !isSearch)) {
+                if (selectedIndex >= 0 && buyers[selectedIndex]) {
+                    e.preventDefault();
+                    openOrderHistory(buyers[selectedIndex]);
+                }
+            } else if ((e.key === 'e' || e.key === 'E') && !isInput) {
+                if (selectedIndex >= 0 && buyers[selectedIndex]) {
+                    e.preventDefault();
+                    handleOpenModal(buyers[selectedIndex]);
+                }
+            } else if (e.key === 'Delete' && !isInput) {
+                if (selectedIndex >= 0 && buyers[selectedIndex]) {
+                    e.preventDefault();
+                    handleDelete(buyers[selectedIndex]._id);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isModalOpen, historyBuyer, selectedIndex, buyers]);
+
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this buyer?")) {
             try {
@@ -244,13 +330,33 @@ export default function Buyers() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50 text-sm md:text-base">
-                                        {buyers.map((buyer) => (
+                                        {buyers.map((buyer, index) => (
                                             <tr
+                                                id={'buyer-row-' + index}
                                                 key={buyer._id}
-                                                onClick={() =>
-                                                    openOrderHistory(buyer)
-                                                }
-                                                className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
+                                                tabIndex={0}
+                                                onClick={() => {
+                                                    setSelectedIndex(index);
+                                                    openOrderHistory(buyer);
+                                                }}
+                                                onFocus={() => setSelectedIndex(index)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        openOrderHistory(buyer);
+                                                    } else if (e.key === 'e' || e.key === 'E') {
+                                                        e.preventDefault();
+                                                        handleOpenModal(buyer);
+                                                    } else if (e.key === 'Delete') {
+                                                        e.preventDefault();
+                                                        handleDelete(buyer._id);
+                                                    }
+                                                }}
+                                                className={'cursor-pointer transition-colors group ' + (
+                                                    index === selectedIndex
+                                                        ? 'bg-amber-50/90 dark:bg-amber-950/40 ring-2 ring-amber-500 ring-inset font-semibold'
+                                                        : 'hover:bg-amber-50/40'
+                                                )}
                                             >
                                                 <td className="p-5 pl-6 font-mono text-sm text-slate-400 font-semibold">
                                                     {buyer.buyerId}
@@ -624,6 +730,7 @@ export default function Buyers() {
                                     Full Name
                                 </label>
                                 <input
+                                    ref={nameInputRef}
                                     type="text"
                                     name="name"
                                     value={formData.name}

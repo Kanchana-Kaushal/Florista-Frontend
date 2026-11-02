@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -25,6 +25,9 @@ export default function EditOrder() {
     const [flowerSearch, setFlowerSearch] = useState('');
     const [flowers, setFlowers] = useState([]);
     const [isCustomMode, setIsCustomMode] = useState(false);
+    const flowerInputRef = useRef(null);
+    const [flowerHighlightIndex, setFlowerHighlightIndex] = useState(-1);
+
     const [customItem, setCustomItem] = useState({ name: '', cost: '', price: '', qty: 1 });
 
     useEffect(() => {
@@ -66,6 +69,40 @@ export default function EditOrder() {
             setFlowers([]);
         }
     }, [flowerSearch, isCustomMode]);
+
+
+    useEffect(() => {
+        setFlowerHighlightIndex(flowers.length > 0 ? 0 : -1);
+    }, [flowers]);
+
+    useEffect(() => {
+        if (flowerHighlightIndex >= 0) {
+            document.getElementById('edit-flower-opt-' + flowerHighlightIndex)?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [flowerHighlightIndex]);
+
+    const handleFlowerKeyDown = (e) => {
+        if (flowers.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setFlowerHighlightIndex((prev) => (prev + 1 >= flowers.length ? 0 : prev + 1));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setFlowerHighlightIndex((prev) => (prev <= 0 ? flowers.length - 1 : prev - 1));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const target = flowerHighlightIndex >= 0 ? flowers[flowerHighlightIndex] : flowers[0];
+                if (target) {
+                    addFlowerToCart(target);
+                    flowerInputRef.current?.focus();
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setFlowers([]);
+                setFlowerHighlightIndex(-1);
+            }
+        }
+    };
 
     const addFlowerToCart = (flower) => {
         const existing = cart.find(item => item.flower && (item.flower._id === flower._id));
@@ -235,20 +272,63 @@ export default function EditOrder() {
                                         <FiSearch />
                                     </div>
                                     <input 
+                                        ref={flowerInputRef}
                                         type="text" 
-                                        placeholder="Search inventory to add..." 
+                                        role="combobox"
+                                        aria-expanded={flowers.length > 0}
+                                        placeholder="Search inventory to add... (↑ / ↓)" 
                                         className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50 font-medium"
                                         value={flowerSearch}
                                         onChange={(e) => setFlowerSearch(e.target.value)}
+                                        onKeyDown={handleFlowerKeyDown}
                                     />
                                     {flowers.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto ring-1 ring-black ring-opacity-5">
-                                            {flowers.map(f => (
-                                                <div key={f._id} onClick={() => addFlowerToCart(f)} className="p-3 hover:bg-indigo-50 cursor-pointer flex justify-between items-center group border-b border-slate-100 last:border-0">
-                                                    <div><p className="font-bold text-slate-800">{f.name}</p><p className="text-xs text-slate-500">Cost: Rs. {f.costPrice}</p></div>
-                                                    <div className="font-bold text-indigo-600 bg-white px-3 py-1 rounded-full shadow-sm text-sm border border-indigo-100">+ Rs. {f.sellingPrice}</div>
-                                                </div>
-                                            ))}
+                                        <div 
+                                            role="listbox"
+                                            className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto ring-1 ring-black ring-opacity-5"
+                                        >
+                                            {flowers.map((f, idx) => {
+                                                const isHighlighted = idx === flowerHighlightIndex;
+                                                return (
+                                                    <div 
+                                                        id={'edit-flower-opt-' + idx}
+                                                        role="option"
+                                                        aria-selected={isHighlighted}
+                                                        tabIndex={0}
+                                                        key={f._id} 
+                                                        onClick={() => {
+                                                            addFlowerToCart(f);
+                                                            flowerInputRef.current?.focus();
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                e.preventDefault();
+                                                                addFlowerToCart(f);
+                                                                flowerInputRef.current?.focus();
+                                                            }
+                                                        }}
+                                                        className={'p-3 cursor-pointer flex justify-between items-center group border-b border-slate-100 last:border-0 transition-colors ' +
+                                                            (isHighlighted ? 'bg-indigo-50 ring-1 ring-indigo-400 font-semibold' : 'hover:bg-indigo-50')}
+                                                    >
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className={'font-bold ' + (isHighlighted ? 'text-indigo-700' : 'text-slate-800')}>
+                                                                    {f.name}
+                                                                </p>
+                                                                {isHighlighted && (
+                                                                    <span className="text-[10px] uppercase font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded shadow-xs">
+                                                                        Enter ↵
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-slate-500">Cost: Rs. {f.costPrice}</p>
+                                                        </div>
+                                                        <div className="font-bold text-indigo-600 bg-white px-3 py-1 rounded-full shadow-xs text-sm border border-indigo-100">
+                                                            + Rs. {f.sellingPrice}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

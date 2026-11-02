@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiBox, FiLoader, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -7,9 +7,13 @@ import { ListSkeleton } from '../components/Skeletons.jsx';
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Flowers() {
+  const { showKeyboardHints } = useTheme();
   const [flowers, setFlowers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const nameInputRef = useRef(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,6 +84,76 @@ export default function Flowers() {
     }
   };
 
+
+  // Auto-focus first input when modal opens
+  useEffect(() => {
+    if (isModalOpen) {
+      setTimeout(() => nameInputRef.current?.focus(), 50);
+    }
+  }, [isModalOpen]);
+
+  // Keep selection in bounds
+  useEffect(() => {
+    if (flowers.length > 0 && selectedIndex >= flowers.length) {
+      setSelectedIndex(flowers.length - 1);
+    }
+  }, [flowers]);
+
+  // Auto-scroll selected row into view
+  useEffect(() => {
+    if (selectedIndex >= 0) {
+      document.getElementById('flower-row-' + selectedIndex)?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex]);
+
+  // Desktop Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (isModalOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          handleCloseModal();
+        }
+        return;
+      }
+
+      if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        handleOpenModal();
+        return;
+      }
+
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      const isInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+      const isSearch = document.activeElement && document.activeElement.getAttribute('placeholder')?.includes('Search');
+
+      if (e.key === 'ArrowDown') {
+        if (flowers.length > 0) {
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev + 1 >= flowers.length ? 0 : prev + 1));
+        }
+      } else if (e.key === 'ArrowUp') {
+        if (flowers.length > 0) {
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev <= 0 ? flowers.length - 1 : prev - 1));
+        }
+      } else if (e.key === 'Enter' && (!isInput || !isSearch)) {
+        if (selectedIndex >= 0 && flowers[selectedIndex]) {
+          e.preventDefault();
+          handleOpenModal(flowers[selectedIndex]);
+        }
+      } else if (e.key === 'Delete' && !isInput) {
+        if (selectedIndex >= 0 && flowers[selectedIndex]) {
+          e.preventDefault();
+          handleDelete(flowers[selectedIndex]._id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, selectedIndex, flowers]);
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this flower?")) {
       try {
@@ -138,6 +212,17 @@ export default function Flowers() {
           </div>
         </div>
 
+        
+        {/* Desktop Keyboard Hints */}
+        {showKeyboardHints && <div className="hidden sm:flex items-center gap-3 bg-fuchsia-50/60 dark:bg-slate-800 border border-fuchsia-100 dark:border-slate-700 px-4 py-2 rounded-2xl text-xs text-slate-600 dark:text-slate-300">
+          <span className="font-bold text-fuchsia-700 dark:text-fuchsia-400">⌨️ Keyboard:</span>
+          <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">↑ / ↓</kbd> Navigate</span>
+          <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Enter</kbd> Edit</span>
+          <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Del</kbd> Delete</span>
+          <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Alt+N</kbd> Add New</span>
+          <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Esc</kbd> Close</span>
+        </div>}
+
         {/* Content Area */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
           {loading ? (
@@ -154,7 +239,7 @@ export default function Flowers() {
             <>
               {/* ── Mobile Card View ─────────────────────────────────── */}
               <div className="sm:hidden flex flex-col divide-y divide-slate-100">
-                {flowers.map((flower) => {
+                {flowers.map((flower, index) => {
                   const margin = flower.sellingPrice - flower.costPrice;
                   const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
                   const isGoodMargin = margin >= 0;
@@ -218,7 +303,28 @@ export default function Flowers() {
                       const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
                       const isGoodMargin = margin >= 0;
                       return (
-                        <tr key={flower._id} className="hover:bg-slate-50/80 transition-colors group">
+                        <tr
+                          id={'flower-row-' + index}
+                          key={flower._id}
+                          tabIndex={0}
+                          onClick={() => setSelectedIndex(index)}
+                          onDoubleClick={() => handleOpenModal(flower)}
+                          onFocus={() => setSelectedIndex(index)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleOpenModal(flower);
+                            } else if (e.key === 'Delete') {
+                              e.preventDefault();
+                              handleDelete(flower._id);
+                            }
+                          }}
+                          className={'cursor-pointer transition-colors group ' + (
+                            index === selectedIndex
+                              ? 'bg-indigo-50/90 dark:bg-indigo-950/40 ring-2 ring-indigo-500 ring-inset font-semibold'
+                              : 'hover:bg-slate-50/80'
+                          )}
+                        >
                           <td className="p-5 pl-6 font-mono text-sm text-slate-400 font-semibold">{flower.flowerId}</td>
                           <td className="p-5 font-bold text-slate-800">{flower.name}</td>
                           <td className="p-5 font-medium text-slate-600">{formatCurrency(flower.costPrice)}</td>

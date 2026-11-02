@@ -9,6 +9,10 @@ export function ThemeProvider({ children }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
+  const [showKeyboardHints, setShowKeyboardHints] = useState(() => {
+    return localStorage.getItem('florista-kb-hints') === 'true';
+  });
+
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
@@ -20,10 +24,15 @@ export function ThemeProvider({ children }) {
     }
   }, [isDark]);
 
+  useEffect(() => {
+    localStorage.setItem('florista-kb-hints', showKeyboardHints ? 'true' : 'false');
+  }, [showKeyboardHints]);
+
   const toggleTheme = () => setIsDark(prev => !prev);
+  const toggleKeyboardHints = () => setShowKeyboardHints(prev => !prev);
 
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ isDark, toggleTheme, showKeyboardHints, toggleKeyboardHints }}>
       {children}
     </ThemeContext.Provider>
   );

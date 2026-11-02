@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useTheme } from '../context/ThemeContext.jsx';
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -10,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 export default function OrderConfirmation() {
     const location = useLocation();
     const navigate = useNavigate();
+  const { showKeyboardHints } = useTheme();
     const billRef = useRef(null);
 
     // State from previous page
@@ -94,7 +96,17 @@ export default function OrderConfirmation() {
                 pixelRatio: 2,
             });
             const link = document.createElement("a");
-            link.download = `Bill_${confirmedOrder.orderId}.png`;
+            const sanitize = (str) =>
+                String(str || "")
+                    .trim()
+                    .replace(/[\\/:*?"<>|]/g, "")
+                    .replace(/\s+/g, " ");
+
+            const orderId = sanitize(confirmedOrder?.orderId) || "Order";
+            const buyerName = sanitize(buyer?.name || confirmedOrder?.buyer?.name) || "Unknown";
+            const locationName = sanitize(buyer?.location || confirmedOrder?.buyer?.location) || "Unknown";
+
+            link.download = `${orderId}-${buyerName}-${locationName}.png`;
             link.href = dataUrl;
             link.click();
             toast.success("Bill downloaded");
@@ -103,6 +115,46 @@ export default function OrderConfirmation() {
             toast.error("Failed to generate image");
         }
     };
+
+    
+    // Keyboard navigation shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (confirmedOrder) {
+                if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') {
+                    e.preventDefault();
+                    navigate('/new-order');
+                } else if (e.key === 'Enter' || e.key === 'd' || e.key === 'D') {
+                    e.preventDefault();
+                    handleDownloadBill();
+                }
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleConfirmOrder();
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                navigate('/new-order', {
+                    state: {
+                        buyer,
+                        cart,
+                        includePackingFee: location.state?.includePackingFee,
+                        packingFeeCost: location.state?.packingFeeCost,
+                        packingFeePrice: location.state?.packingFeePrice,
+                        packingFeeFlower: location.state?.packingFeeFlower,
+                    },
+                });
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [confirmedOrder, buyer, cart, discount, isSettled, location.state]);
 
     if (!buyer) return null;
 
@@ -139,6 +191,14 @@ export default function OrderConfirmation() {
                         Home
                     </button>
                 </div>
+
+                
+                {/* Desktop Keyboard Hints */}
+                {showKeyboardHints && <div className="hidden sm:flex items-center gap-3 bg-emerald-50/70 border border-emerald-100 px-4 py-2 rounded-xl text-xs text-emerald-800">
+                    <span className="font-bold">⌨️ Keyboard:</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-200 font-mono text-[11px]">Enter / D</kbd> Download Bill</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-200 font-mono text-[11px]">Esc / N</kbd> New Order</span>
+                </div>}
 
                 {/* Printable/Downloadable Bill Node */}
                 <div className="w-full bg-slate-50 flex flex-col items-start p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto max-h-[80vh]">
@@ -299,7 +359,7 @@ export default function OrderConfirmation() {
                             },
                         })
                     }
-                    className="p-2.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 text-slate-600 transition-all hover:scale-105"
+                    tabIndex={0} aria-label="Go back to New Order" className="p-2.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 text-slate-600 transition-all hover:scale-105 focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                     <FiArrowLeft size={20} />
                 </button>
@@ -307,6 +367,20 @@ export default function OrderConfirmation() {
                     Confirm Order
                 </h1>
             </div>
+
+            
+            {/* Desktop Keyboard Hints */}
+            {showKeyboardHints && <div className="hidden sm:flex items-center justify-between bg-indigo-50/70 border border-indigo-100 px-4 py-2 rounded-xl text-xs text-slate-600">
+                <div className="flex items-center gap-3">
+                    <span className="font-bold text-indigo-700">⌨️ Keyboard:</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Tab</kbd> Cycle Inputs</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Space</kbd> Toggle Settled</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Esc</kbd> Back to Order</span>
+                </div>
+                <div className="flex items-center gap-1 font-medium">
+                    <kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Ctrl+Enter</kbd> Confirm & Place Order
+                </div>
+            </div>}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -490,7 +564,16 @@ export default function OrderConfirmation() {
                     </div>
 
                     <div
-                        className="flex justify-between items-center p-4 rounded-xl border border-slate-200 bg-slate-50 mb-6 cursor-pointer hover:bg-slate-100 transition-colors shadow-sm"
+                        tabIndex={0}
+                        role="switch"
+                        aria-checked={isSettled}
+                        onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault();
+                                setIsSettled(!isSettled);
+                            }
+                        }}
+                        className="flex justify-between items-center p-4 rounded-xl border border-slate-200 bg-slate-50 mb-6 cursor-pointer hover:bg-slate-100 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-indigo-500"
                         onClick={() => setIsSettled(!isSettled)}
                     >
                         <div>

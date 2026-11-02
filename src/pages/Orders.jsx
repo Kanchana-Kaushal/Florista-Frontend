@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from '../context/ThemeContext.jsx';
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -24,7 +25,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 export default function Orders() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [orders, setOrders] = useState([]);
+    const { showKeyboardHints } = useTheme();
+  const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Filters
@@ -36,6 +38,7 @@ export default function Orders() {
     // Modal & Menus
     const [receiptOrder, setReceiptOrder] = useState(null);
     const [detailsOrder, setDetailsOrder] = useState(null);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
     const [openDropdown, setOpenDropdown] = useState(null);
     const billRef = useRef(null);
 
@@ -128,6 +131,78 @@ export default function Orders() {
         }
     };
 
+    
+    // Keep selection in bounds
+    useEffect(() => {
+        if (orders.length > 0 && selectedIndex >= orders.length) {
+            setSelectedIndex(orders.length - 1);
+        }
+    }, [orders]);
+
+    // Auto-scroll selected row into view
+    useEffect(() => {
+        if (selectedIndex >= 0) {
+            document.getElementById('order-row-' + selectedIndex)?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [selectedIndex]);
+
+    // Desktop Keyboard Navigation
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (receiptOrder) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setReceiptOrder(null);
+                } else if (e.key === 'Enter' || e.key === 'd' || e.key === 'D') {
+                    e.preventDefault();
+                    handleDownloadBill();
+                }
+                return;
+            }
+
+            if (detailsOrder) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setDetailsOrder(null);
+                } else if (e.key === 'r' || e.key === 'R' || e.key === 'p' || e.key === 'P') {
+                    e.preventDefault();
+                    setReceiptOrder(detailsOrder);
+                    setDetailsOrder(null);
+                }
+                return;
+            }
+
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const isInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+            const isSearch = document.activeElement && document.activeElement.getAttribute('placeholder')?.includes('Search');
+
+            if (e.key === 'ArrowDown') {
+                if (orders.length > 0) {
+                    e.preventDefault();
+                    setSelectedIndex((prev) => (prev + 1 >= orders.length ? 0 : prev + 1));
+                }
+            } else if (e.key === 'ArrowUp') {
+                if (orders.length > 0) {
+                    e.preventDefault();
+                    setSelectedIndex((prev) => (prev <= 0 ? orders.length - 1 : prev - 1));
+                }
+            } else if (e.key === 'Enter' && (!isInput || !isSearch)) {
+                if (selectedIndex >= 0 && orders[selectedIndex]) {
+                    e.preventDefault();
+                    setDetailsOrder(orders[selectedIndex]);
+                }
+            } else if (e.key === ' ' && !isInput) {
+                if (selectedIndex >= 0 && orders[selectedIndex] && !orders[selectedIndex].settled) {
+                    e.preventDefault();
+                    toggleOrderSelection(orders[selectedIndex]);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [receiptOrder, detailsOrder, selectedIndex, orders, selectedOrders]);
+
     const handleMarkPaid = async (orderId) => {
         try {
             await axios.put(`${API_URL}/orders/${orderId}`, { paid: true });
@@ -149,7 +224,17 @@ export default function Orders() {
                 pixelRatio: 2,
             });
             const link = document.createElement("a");
-            link.download = `Receipt_${receiptOrder.orderId}.png`;
+            const sanitize = (str) =>
+                String(str || "")
+                    .trim()
+                    .replace(/[\\/:*?"<>|]/g, "")
+                    .replace(/\s+/g, " ");
+
+            const orderId = sanitize(receiptOrder?.orderId) || "Order";
+            const buyerName = sanitize(receiptOrder?.buyer?.name) || "Unknown";
+            const locationName = sanitize(receiptOrder?.buyer?.location) || "Unknown";
+
+            link.download = `${orderId}-${buyerName}-${locationName}.png`;
             link.href = dataUrl;
             link.click();
             toast.success("Receipt downloaded");
@@ -233,6 +318,17 @@ export default function Orders() {
                     </div>
                 </div>
 
+                
+                {/* Desktop Keyboard Hints */}
+                {showKeyboardHints && <div className="hidden sm:flex items-center gap-3 bg-indigo-50/70 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-4 py-2 rounded-2xl text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400">⌨️ Keyboard:</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">↑ / ↓</kbd> Navigate</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Space</kbd> Select for Settle</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Enter</kbd> View Details</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">R</kbd> View Receipt</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Esc</kbd> Close Modal</span>
+                </div>}
+
                 {/* Content Table */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
                     {loading ? (
@@ -272,15 +368,19 @@ export default function Orders() {
                                         </tr>
                                     </thead>
                                     <tbody className="text-sm md:text-base">
-                                        {orders.map((order) => {
+                                        {orders.map((order, index) => {
                                             const isSelected =
                                                 !!selectedOrders.find(
                                                     (o) => o._id === order._id,
                                                 );
                                             return (
                                                 <tr
+                                                    id={'order-row-' + index}
                                                     key={order._id}
+                                                    tabIndex={0}
+                                                    onFocus={() => setSelectedIndex(index)}
                                                     onClick={(e) => {
+                                                        setSelectedIndex(index);
                                                         if (
                                                             e.target.closest(
                                                                 'input[type="checkbox"]',
@@ -295,7 +395,21 @@ export default function Orders() {
                                                             return;
                                                         setDetailsOrder(order);
                                                     }}
-                                                    className={`hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-200 last:border-0 ${isSelected ? "bg-indigo-50" : "bg-white"}`}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            setDetailsOrder(order);
+                                                        } else if (e.key === ' ' && !order.settled) {
+                                                            e.preventDefault();
+                                                            toggleOrderSelection(order);
+                                                        }
+                                                    }}
+                                                    className={'hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-200 last:border-0 ' +
+                                                        (index === selectedIndex
+                                                            ? 'ring-2 ring-indigo-500 bg-indigo-50/80 font-semibold'
+                                                            : isSelected
+                                                            ? 'bg-indigo-50'
+                                                            : 'bg-white')}
                                                 >
                                                     <td className="p-5 pl-6">
                                                         <input
