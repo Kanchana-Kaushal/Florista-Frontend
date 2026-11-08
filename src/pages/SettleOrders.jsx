@@ -9,6 +9,7 @@ import {
     FiPrinter,
     FiEdit3,
     FiTrash2,
+    FiZap,
 } from "react-icons/fi";
 import { toPng } from "html-to-image";
 
@@ -34,8 +35,8 @@ export default function SettleOrders() {
                 ...order,
                 items: order.items.map(item => ({
                     ...item,
-                    billQty: item.qty,
-                    removedFromBill: false
+                    billQty: item.billQty !== undefined ? item.billQty : item.qty,
+                    removedFromBill: item.removedFromBill !== undefined ? item.removedFromBill : false
                 }))
             }));
             setOrders(initialOrders);
@@ -310,6 +311,25 @@ export default function SettleOrders() {
                 </div>
             </div>
 
+            {location.state?.isQuickSettle && (
+                <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
+                            <FiZap size={20} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm text-slate-800">Quick Flower Settlement Mode</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                Settling for: <span className="font-semibold text-amber-800">{location.state.selectedFlowerNames?.join(", ") || "Selected Flowers"}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <span className="text-xs font-bold bg-white text-amber-800 px-3 py-1.5 rounded-xl border border-amber-200 shadow-xs shrink-0">
+                        {orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Included
+                    </span>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     {orders.map((order, orderIndex) => (
@@ -339,9 +359,16 @@ export default function SettleOrders() {
                                             <p className={`font-bold mb-1 ${item.removedFromBill ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
                                                 {item.customProduct || item.flower?.name}
                                             </p>
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest bg-white inline-block px-2 py-0.5 rounded border border-slate-100">
-                                                Sale Price: {formatCurrency(item.price)}
-                                            </p>
+                                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest bg-white inline-block px-2 py-0.5 rounded border border-slate-100">
+                                                    Sale Price: {formatCurrency(item.price)}
+                                                </p>
+                                                {item.removedFromBill && (
+                                                    <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                        Excluded from bill
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex items-end gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 pt-1">

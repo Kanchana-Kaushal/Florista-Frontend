@@ -15,6 +15,12 @@ import {
     FiTrash2,
     FiEye,
     FiDollarSign,
+    FiZap,
+    FiChevronDown,
+    FiCheckSquare,
+    FiBox,
+    FiPieChart,
+    FiArrowRight,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { toPng } from "html-to-image";
@@ -42,11 +48,31 @@ export default function Orders() {
     const [openDropdown, setOpenDropdown] = useState(null);
     const billRef = useRef(null);
 
-    // Close dropdown when clicking outside
+    // Selection dropdown & ref
+    const [isHeaderSelectOpen, setIsHeaderSelectOpen] = useState(false);
+    const [isToolbarSelectOpen, setIsToolbarSelectOpen] = useState(false);
+    const headerCheckboxRef = useRef(null);
+
+    // Quick Settle state
+    const [isQuickSettleOpen, setIsQuickSettleOpen] = useState(false);
+    const [quickSettleLoading, setQuickSettleLoading] = useState(false);
+    const [quickSettleOrders, setQuickSettleOrders] = useState([]);
+    const [aggregatedFlowers, setAggregatedFlowers] = useState([]);
+    const [selectedFlowerKeys, setSelectedFlowerKeys] = useState(new Set());
+    const [quickSettleSearch, setQuickSettleSearch] = useState("");
+    const [quickSettleFilter, setQuickSettleFilter] = useState("all");
+
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (!e.target.closest(".options-dropdown-container")) {
                 setOpenDropdown(null);
+            }
+            if (!e.target.closest(".header-select-container")) {
+                setIsHeaderSelectOpen(false);
+            }
+            if (!e.target.closest(".toolbar-select-container")) {
+                setIsToolbarSelectOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -115,6 +141,253 @@ export default function Orders() {
         }
     };
 
+    const unsettledOrders = orders.filter((o) => !o.settled);
+    const paidUnsettledOrders = orders.filter((o) => !o.settled && o.paid);
+
+    const isAllUnsettledSelected =
+        unsettledOrders.length > 0 &&
+        unsettledOrders.every((o) =>
+            selectedOrders.some((s) => s._id === o._id),
+        );
+
+    const isSomeUnsettledSelected =
+        selectedOrders.length > 0 && !isAllUnsettledSelected;
+
+    useEffect(() => {
+        if (headerCheckboxRef.current) {
+            headerCheckboxRef.current.indeterminate = isSomeUnsettledSelected;
+        }
+    }, [isSomeUnsettledSelected]);
+
+    const handleToggleSelectAll = () => {
+        if (isAllUnsettledSelected) {
+            setSelectedOrders([]);
+        } else {
+            setSelectedOrders([...unsettledOrders]);
+        }
+    };
+
+    const handleSelectAllUnsettled = () => {
+        setSelectedOrders([...unsettledOrders]);
+    };
+
+    const handleSelectPaidUnsettled = () => {
+        setSelectedOrders([...paidUnsettledOrders]);
+    };
+
+    const handleDeselectAll = () => {
+        setSelectedOrders([]);
+    };
+
+    // Quick Settle Aggregation & Data Fetching
+    const fetchQuickSettleData = async () => {
+        setQuickSettleLoading(true);
+        try {
+            const [ordersRes, flowersRes] = await Promise.all([
+                axios.get(`${API_URL}/orders?settled=false&limit=1000`),
+                axios.get(`${API_URL}/flowers?limit=200`),
+            ]);
+
+            const rawOrders = ordersRes.data.data || [];
+            const rawFlowers = flowersRes.data.data || [];
+
+            setQuickSettleOrders(rawOrders);
+
+            const map = new Map();
+
+            // 1. Initialize from flower catalog
+            rawFlowers.forEach((f) => {
+                map.set(String(f._id), {
+                    id: String(f._id),
+                    name: f.name,
+                    flowerId: f.flowerId,
+                    costPrice: f.costPrice || 0,
+                    sellingPrice: f.sellingPrice || 0,
+                    unsettledQty: 0,
+                    unsettledCost: 0,
+                    unsettledRevenue: 0,
+                    orderIds: new Set(),
+                });
+            });
+
+            // 2. Aggregate from unsettled orders
+            rawOrders.forEach((o) => {
+                o.items?.forEach((item) => {
+                    const flowerId = item.flower?._id || item.flower;
+                    const key = flowerId ? String(flowerId) : (item.customProduct ? `custom_${item.customProduct}` : null);
+                    if (!key) return;
+
+                    let entry = map.get(key);
+                    if (!entry) {
+                        entry = {
+                            id: key,
+                            name: item.customProduct || item.flower?.name || "Custom Item",
+                            flowerId: item.flower?.flowerId || "CUSTOM",
+                            costPrice: item.cost || item.flower?.costPrice || 0,
+                            sellingPrice: item.price || item.flower?.sellingPrice || 0,
+                            unsettledQty: 0,
+                            unsettledCost: 0,
+                            unsettledRevenue: 0,
+                            orderIds: new Set(),
+                        };
+                        map.set(key, entry);
+                    }
+
+                    const qty = Number(item.qty) || 0;
+                    const unitCost = Number(item.cost !== undefined ? item.cost : entry.costPrice) || 0;
+                    const unitPrice = Number(item.price !== undefined ? item.price : entry.sellingPrice) || 0;
+
+                    entry.unsettledQty += qty;
+                    entry.unsettledCost += qty * unitCost;
+                    entry.unsettledRevenue += qty * unitPrice;
+                    entry.orderIds.add(o._id);
+                });
+            });
+
+            const list = Array.from(map.values()).map(item => ({
+                ...item,
+                orderCount: item.orderIds.size,
+            }));
+
+            // Sort: pending flowers first (descending by unsettledCost), then alphabetically
+            list.sort((a, b) => {
+                if (a.unsettledQty > 0 && b.unsettledQty === 0) return -1;
+                if (a.unsettledQty === 0 && b.unsettledQty > 0) return 1;
+                if (a.unsettledQty > 0 && b.unsettledQty > 0) {
+                    return b.unsettledCost - a.unsettledCost;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            setAggregatedFlowers(list);
+
+            // Pre-select all pending flowers by default
+            const initialSelected = new Set(
+                list.filter((f) => f.unsettledQty > 0).map((f) => f.id)
+            );
+            setSelectedFlowerKeys(initialSelected);
+        } catch (error) {
+            console.error("Failed to load quick settle data", error);
+            toast.error("Failed to load flower settlement data");
+        } finally {
+            setQuickSettleLoading(false);
+        }
+    };
+
+    const toggleFlowerSelection = (id) => {
+        setSelectedFlowerKeys((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleSelectAllPendingFlowers = () => {
+        const pendingIds = aggregatedFlowers
+            .filter((f) => f.unsettledQty > 0)
+            .map((f) => f.id);
+        setSelectedFlowerKeys(new Set(pendingIds));
+    };
+
+    const handleDeselectAllFlowers = () => {
+        setSelectedFlowerKeys(new Set());
+    };
+
+    // Quick settle stats
+    const selectedFlowersList = aggregatedFlowers.filter((f) =>
+        selectedFlowerKeys.has(f.id)
+    );
+
+    const qsTotalCost = selectedFlowersList.reduce(
+        (sum, f) => sum + f.unsettledCost,
+        0
+    );
+    const qsTotalQty = selectedFlowersList.reduce(
+        (sum, f) => sum + f.unsettledQty,
+        0
+    );
+    const qsTotalRevenue = selectedFlowersList.reduce(
+        (sum, f) => sum + f.unsettledRevenue,
+        0
+    );
+
+    const qsAffectedOrderIds = new Set();
+    selectedFlowersList.forEach((f) => {
+        f.orderIds.forEach((id) => qsAffectedOrderIds.add(id));
+    });
+    const qsAffectedOrdersCount = qsAffectedOrderIds.size;
+
+    const qsProfit = qsTotalRevenue - qsTotalCost;
+    const qsMarginPercent =
+        qsTotalRevenue > 0
+            ? ((qsProfit / qsTotalRevenue) * 100).toFixed(1)
+            : 0;
+
+    const filteredQuickSettleFlowers = aggregatedFlowers.filter((flower) => {
+        if (quickSettleSearch.trim()) {
+            const term = quickSettleSearch.toLowerCase();
+            const matchesName = flower.name.toLowerCase().includes(term);
+            const matchesId = flower.flowerId?.toLowerCase() || "";
+            if (!matchesName && !matchesId.includes(term)) return false;
+        }
+
+        if (quickSettleFilter === "pending") {
+            return flower.unsettledQty > 0;
+        }
+        if (quickSettleFilter === "selected") {
+            return selectedFlowerKeys.has(flower.id);
+        }
+        return true;
+    });
+
+    const handleProceedQuickSettle = () => {
+        if (selectedFlowerKeys.size === 0) {
+            toast.error("Please select at least one flower to settle.");
+            return;
+        }
+
+        const relevantOrders = quickSettleOrders.filter((order) =>
+            order.items?.some((item) => {
+                const flowerId = item.flower?._id || item.flower;
+                const key = flowerId ? String(flowerId) : (item.customProduct ? `custom_${item.customProduct}` : null);
+                return selectedFlowerKeys.has(key);
+            })
+        );
+
+        if (relevantOrders.length === 0) {
+            toast.error("No unsettled orders found for the selected flowers.");
+            return;
+        }
+
+        const preparedOrders = relevantOrders.map((order) => ({
+            ...order,
+            items: order.items.map((item) => {
+                const flowerId = item.flower?._id || item.flower;
+                const key = flowerId ? String(flowerId) : (item.customProduct ? `custom_${item.customProduct}` : null);
+                const isSelected = selectedFlowerKeys.has(key);
+                return {
+                    ...item,
+                    billQty: item.qty,
+                    removedFromBill: !isSelected,
+                };
+            }),
+        }));
+
+        setIsQuickSettleOpen(false);
+
+        navigate("/settle", {
+            state: {
+                selectedOrders: preparedOrders,
+                isQuickSettle: true,
+                selectedFlowerNames: selectedFlowersList.map((f) => f.name),
+            },
+        });
+    };
+
     const handleDelete = async (orderId) => {
         if (
             !window.confirm(
@@ -149,6 +422,21 @@ export default function Orders() {
     // Desktop Keyboard Navigation
     useEffect(() => {
         const handleKeyDown = (e) => {
+            if (isQuickSettleOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsQuickSettleOpen(false);
+                }
+                return;
+            }
+
+            if (e.altKey && (e.key === 'q' || e.key === 'Q')) {
+                e.preventDefault();
+                setIsQuickSettleOpen(true);
+                fetchQuickSettleData();
+                return;
+            }
+
             if (receiptOrder) {
                 if (e.key === 'Escape') {
                     e.preventDefault();
@@ -201,7 +489,7 @@ export default function Orders() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [receiptOrder, detailsOrder, selectedIndex, orders, selectedOrders]);
+    }, [receiptOrder, detailsOrder, isQuickSettleOpen, selectedIndex, orders, selectedOrders]);
 
     const handleMarkPaid = async (orderId) => {
         try {
@@ -301,6 +589,86 @@ export default function Orders() {
                             />
                         </div>
 
+                        {/* Batch Select Dropdown */}
+                        <div className="relative toolbar-select-container w-full sm:w-auto">
+                            <button
+                                type="button"
+                                onClick={() => setIsToolbarSelectOpen(!isToolbarSelectOpen)}
+                                className="py-3 px-4 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-slate-700 hover:bg-slate-50 shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto transition-all"
+                            >
+                                <FiCheckSquare size={17} className="text-indigo-600" />
+                                <span>
+                                    {selectedOrders.length > 0
+                                        ? `Selected (${selectedOrders.length})`
+                                        : "Select Orders"}
+                                </span>
+                                <FiChevronDown size={14} className="text-slate-400" />
+                            </button>
+
+                            {isToolbarSelectOpen && (
+                                <div className="absolute left-0 sm:right-0 sm:left-auto top-14 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-30 text-left">
+                                    <div className="px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                        Batch Select Orders
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleSelectAllUnsettled();
+                                            setIsToolbarSelectOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between"
+                                    >
+                                        <span>All Unsettled</span>
+                                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-mono">
+                                            {unsettledOrders.length}
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleSelectPaidUnsettled();
+                                            setIsToolbarSelectOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 flex items-center justify-between"
+                                    >
+                                        <span>Paid Only (Unsettled)</span>
+                                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-mono">
+                                            {paidUnsettledOrders.length}
+                                        </span>
+                                    </button>
+                                    {selectedOrders.length > 0 && (
+                                        <>
+                                            <div className="border-t border-slate-100 my-1"></div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    handleDeselectAll();
+                                                    setIsToolbarSelectOpen(false);
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-1.5"
+                                            >
+                                                <span>Clear Selection</span>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick Settle Action */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsQuickSettleOpen(true);
+                                fetchQuickSettleData();
+                            }}
+                            className="py-3 px-5 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto hover:-translate-y-0.5 active:scale-95"
+                            title="Quick Settle by selecting flowers"
+                        >
+                            <FiZap size={18} className="text-amber-100" />
+                            Quick Settle
+                        </button>
+
                         {/* Settle Action */}
                         <button
                             disabled={selectedOrders.length === 0}
@@ -318,15 +686,48 @@ export default function Orders() {
                     </div>
                 </div>
 
+                {/* Selected Orders Summary Banner */}
+                {selectedOrders.length > 0 && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-indigo-50 border border-indigo-100 rounded-2xl text-xs sm:text-sm text-indigo-900 gap-3 shadow-xs">
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                            <span className="font-bold">
+                                {selectedOrders.length} {selectedOrders.length === 1 ? 'order' : 'orders'} selected for settlement
+                            </span>
+                            <span className="text-slate-400 hidden sm:inline">·</span>
+                            <span className="text-slate-600 hidden sm:inline">
+                                Total Value: <strong>{formatCurrency(selectedOrders.reduce((s, o) => s + (o.totalAmount || 0), 0))}</strong>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                            <button
+                                type="button"
+                                onClick={handleDeselectAll}
+                                className="text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors"
+                            >
+                                Clear Selection
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate("/settle", { state: { selectedOrders } })}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow-sm transition-all hover:-translate-y-0.5"
+                            >
+                                Proceed to Settle →
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 
                 {/* Desktop Keyboard Hints */}
-                {showKeyboardHints && <div className="hidden sm:flex items-center gap-3 bg-indigo-50/70 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-4 py-2 rounded-2xl text-xs text-slate-600 dark:text-slate-300">
-                    <span className="font-bold text-indigo-700 dark:text-indigo-400">⌨️ Keyboard:</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">↑ / ↓</kbd> Navigate</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Space</kbd> Select for Settle</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Enter</kbd> View Details</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">R</kbd> View Receipt</span>
-                    <span><kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 font-mono text-[11px]">Esc</kbd> Close Modal</span>
+                {showKeyboardHints && <div className="hidden sm:flex items-center gap-3 bg-indigo-50/70 border border-indigo-100 px-4 py-2 rounded-2xl text-xs text-slate-600">
+                    <span className="font-bold text-indigo-700">⌨️ Keyboard:</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">↑ / ↓</kbd> Navigate</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Space</kbd> Select for Settle</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Enter</kbd> View Details</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">R</kbd> View Receipt</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Alt+Q</kbd> Quick Settle</span>
+                    <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-slate-200 font-mono text-[11px]">Esc</kbd> Close Modal</span>
                 </div>}
 
                 {/* Content Table */}
@@ -354,7 +755,80 @@ export default function Orders() {
                                 <table className="w-full text-left border-collapse min-w-[1000px]">
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold text-sm uppercase tracking-wider">
-                                            <th className="p-5 pl-6 rounded-tl-3xl w-10"></th>
+                                            <th className="p-5 pl-6 rounded-tl-3xl w-14">
+                                                <div className="flex items-center gap-1.5 relative header-select-container">
+                                                    <input
+                                                        type="checkbox"
+                                                        ref={headerCheckboxRef}
+                                                        checked={isAllUnsettledSelected}
+                                                        disabled={unsettledOrders.length === 0}
+                                                        onChange={handleToggleSelectAll}
+                                                        title={isAllUnsettledSelected ? "Deselect All" : "Select All Unsettled"}
+                                                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setIsHeaderSelectOpen(!isHeaderSelectOpen);
+                                                        }}
+                                                        disabled={unsettledOrders.length === 0}
+                                                        className="p-0.5 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-200/60 transition-colors"
+                                                        title="Select all or paid"
+                                                    >
+                                                        <FiChevronDown size={14} />
+                                                    </button>
+
+                                                    {isHeaderSelectOpen && (
+                                                        <div className="absolute left-0 top-8 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-30 text-left font-normal normal-case">
+                                                            <div className="px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                                Select Orders
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleSelectAllUnsettled();
+                                                                    setIsHeaderSelectOpen(false);
+                                                                }}
+                                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between"
+                                                            >
+                                                                <span>All Unsettled</span>
+                                                                <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                                                                    {unsettledOrders.length}
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleSelectPaidUnsettled();
+                                                                    setIsHeaderSelectOpen(false);
+                                                                }}
+                                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 flex items-center justify-between"
+                                                            >
+                                                                <span>Paid Only</span>
+                                                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-mono">
+                                                                    {paidUnsettledOrders.length}
+                                                                </span>
+                                                            </button>
+                                                            {selectedOrders.length > 0 && (
+                                                                <>
+                                                                    <div className="border-t border-slate-100 my-1"></div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            handleDeselectAll();
+                                                                            setIsHeaderSelectOpen(false);
+                                                                        }}
+                                                                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                                                    >
+                                                                        Deselect All
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </th>
                                             <th className="p-5">
                                                 Order ID / Date
                                             </th>
@@ -560,6 +1034,34 @@ export default function Orders() {
 
                             {/* Mobile Card View */}
                             <div className="lg:hidden flex flex-col gap-3 px-3 py-4 bg-slate-50/50 rounded-b-2xl">
+                                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium shadow-xs">
+                                    <span className="font-bold text-slate-600">Select:</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectAllUnsettled}
+                                            className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg border border-indigo-100"
+                                        >
+                                            All ({unsettledOrders.length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectPaidUnsettled}
+                                            className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-100"
+                                        >
+                                            Paid ({paidUnsettledOrders.length})
+                                        </button>
+                                        {selectedOrders.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={handleDeselectAll}
+                                                className="px-2 py-1 bg-rose-50 text-rose-600 font-bold rounded-lg border border-rose-100"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                                 {orders.map((order) => {
                                     const isSelected = !!selectedOrders.find(
                                         (o) => o._id === order._id,
@@ -1103,6 +1605,326 @@ export default function Orders() {
                                         help.
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quick Settle Modal */}
+            {isQuickSettleOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-20">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                        onClick={() => setIsQuickSettleOpen(false)}
+                    ></div>
+
+                    {/* Modal Card */}
+                    <div className="relative flex flex-col w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden z-20 max-h-[85vh]">
+                        {/* Modal Header */}
+                        <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                                    <FiZap size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800 leading-tight">
+                                        Quick Flower Settlement
+                                    </h2>
+                                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                                        Select flowers from unsettled orders to generate a supplier bill
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsQuickSettleOpen(false)}
+                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+                            >
+                                <FiX size={24} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 min-h-0 space-y-6">
+                            {/* Stats Cards Dashboard */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* Total to Settle */}
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            Total to Settle
+                                        </span>
+                                        <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                            <FiDollarSign size={14} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-slate-800 tracking-tight">
+                                            {formatCurrency(qsTotalCost)}
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Supplier cost for selected
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Total Stems */}
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            Total Stems
+                                        </span>
+                                        <div className="w-6 h-6 rounded-lg bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center">
+                                            <FiBox size={14} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-slate-800 tracking-tight">
+                                            {qsTotalQty} <span className="text-sm font-semibold text-slate-500">stems</span>
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Across selected flowers
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Orders Covered */}
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            Orders Covered
+                                        </span>
+                                        <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                                            <FiShoppingBag size={14} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-slate-800 tracking-tight">
+                                            {qsAffectedOrdersCount} <span className="text-sm font-semibold text-slate-500">orders</span>
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Unsettled customer orders
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Sales & Margin */}
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            Sales & Margin
+                                        </span>
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                            <FiPieChart size={14} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-slate-800 tracking-tight">
+                                            {formatCurrency(qsTotalRevenue)}
+                                        </p>
+                                        <p className="text-xs text-emerald-600 font-bold mt-1">
+                                            Margin: +{qsMarginPercent}% ({formatCurrency(qsProfit)})
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Search & Filter Toolbar */}
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                                <div className="relative flex-1">
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3.5 pointer-events-none text-slate-400">
+                                        <FiSearch size={16} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search flower by name or ID..."
+                                        value={quickSettleSearch}
+                                        onChange={(e) => setQuickSettleSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                                    />
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {/* Tabs */}
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setQuickSettleFilter("all")}
+                                            className={`px-3 py-1.5 rounded-xl text-xs transition-colors ${
+                                                quickSettleFilter === "all"
+                                                    ? "bg-indigo-50 text-indigo-600 font-bold border border-indigo-200"
+                                                    : "bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium border border-slate-200"
+                                            }`}
+                                        >
+                                            All ({aggregatedFlowers.length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setQuickSettleFilter("pending")}
+                                            className={`px-3 py-1.5 rounded-xl text-xs transition-colors ${
+                                                quickSettleFilter === "pending"
+                                                    ? "bg-indigo-50 text-indigo-600 font-bold border border-indigo-200"
+                                                    : "bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium border border-slate-200"
+                                            }`}
+                                        >
+                                            Pending ({aggregatedFlowers.filter((f) => f.unsettledQty > 0).length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setQuickSettleFilter("selected")}
+                                            className={`px-3 py-1.5 rounded-xl text-xs transition-colors ${
+                                                quickSettleFilter === "selected"
+                                                    ? "bg-indigo-50 text-indigo-600 font-bold border border-indigo-200"
+                                                    : "bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium border border-slate-200"
+                                            }`}
+                                        >
+                                            Selected ({selectedFlowerKeys.size})
+                                        </button>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAllPendingFlowers}
+                                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors"
+                                    >
+                                        Select Pending
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDeselectAllFlowers}
+                                        className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Flower Items Table */}
+                            {quickSettleLoading ? (
+                                <div className="py-16 flex flex-col items-center justify-center text-slate-400">
+                                    <FiLoader size={36} className="animate-spin text-indigo-600 mb-3" />
+                                    <p className="text-sm font-semibold">Loading flowers from unsettled orders...</p>
+                                </div>
+                            ) : filteredQuickSettleFlowers.length === 0 ? (
+                                <div className="py-14 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <FiBox size={36} className="mx-auto mb-2 text-slate-300" />
+                                    <p className="font-bold text-slate-600 text-sm">No flowers found</p>
+                                    <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or filter tab.</p>
+                                </div>
+                            ) : (
+                                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm text-sm">
+                                    <div className="overflow-x-auto max-h-[360px] custom-scrollbar">
+                                        <table className="w-full text-left min-w-[500px]">
+                                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold sticky top-0 z-10">
+                                                <tr>
+                                                    <th className="px-4 py-3 w-10">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={
+                                                                filteredQuickSettleFlowers.length > 0 &&
+                                                                filteredQuickSettleFlowers.every(f => selectedFlowerKeys.has(f.id))
+                                                            }
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedFlowerKeys(new Set(filteredQuickSettleFlowers.map(f => f.id)));
+                                                                } else {
+                                                                    handleDeselectAllFlowers();
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                        />
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold">Flower Item</th>
+                                                    <th className="px-4 py-3 font-semibold text-right">Cost</th>
+                                                    <th className="px-4 py-3 font-semibold text-right">Price</th>
+                                                    <th className="px-4 py-3 font-semibold text-right">Pending Qty</th>
+                                                    <th className="px-4 py-3 font-semibold text-right">To Settle</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredQuickSettleFlowers.map((flower) => {
+                                                    const isSelected = selectedFlowerKeys.has(flower.id);
+                                                    const hasPending = flower.unsettledQty > 0;
+                                                    return (
+                                                        <tr
+                                                            key={flower.id}
+                                                            onClick={() => toggleFlowerSelection(flower.id)}
+                                                            className={`hover:bg-slate-50/50 cursor-pointer transition-colors ${
+                                                                isSelected ? "bg-indigo-50/80 font-semibold" : ""
+                                                            } ${!hasPending ? "opacity-50" : ""}`}
+                                                        >
+                                                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleFlowerSelection(flower.id)}
+                                                                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 font-medium text-slate-700">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-slate-800 text-sm">
+                                                                        {flower.name}
+                                                                    </span>
+                                                                    <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md font-semibold">
+                                                                        {flower.flowerId}
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right text-slate-500">
+                                                                {formatCurrency(flower.costPrice)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right text-slate-700">
+                                                                {formatCurrency(flower.sellingPrice)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-medium text-slate-700">
+                                                                <span className="font-bold text-slate-800">{flower.unsettledQty}</span>
+                                                                <span className="text-xs text-slate-400 block font-normal">
+                                                                    in {flower.orderCount} {flower.orderCount === 1 ? 'order' : 'orders'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-bold text-indigo-600">
+                                                                {formatCurrency(flower.unsettledCost)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                            <div className="text-sm text-slate-600 text-center sm:text-left">
+                                <span className="font-bold text-slate-800">{selectedFlowerKeys.size}</span> flowers selected · Total to Settle: <span className="font-bold text-indigo-600">{formatCurrency(qsTotalCost)}</span> <span className="text-slate-400 font-normal">({qsAffectedOrdersCount} orders)</span>
+                            </div>
+
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsQuickSettleOpen(false)}
+                                    className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={selectedFlowerKeys.size === 0}
+                                    onClick={handleProceedQuickSettle}
+                                    className={`flex-1 sm:flex-none px-5 py-2.5 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm ${
+                                        selectedFlowerKeys.size > 0
+                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                            : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    }`}
+                                >
+                                    <span>Proceed to Settle Review</span>
+                                    <FiArrowRight size={16} />
+                                </button>
                             </div>
                         </div>
                     </div>
