@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiBox, FiLoader, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { ListSkeleton } from '../components/Skeletons.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -26,7 +27,7 @@ export default function Flowers() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/flowers?search=${search}&limit=100`);
-      setFlowers(res.data.data);
+      setFlowers(res.data.data || []);
     } catch (error) {
       console.error("Failed to fetch flowers", error);
       toast.error("Failed to load flowers inventory.");
@@ -298,7 +299,7 @@ export default function Flowers() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {flowers.map((flower) => {
+                    {flowers.map((flower, index) => {
                       const margin = flower.sellingPrice - flower.costPrice;
                       const marginPercent = flower.costPrice > 0 ? ((margin / flower.costPrice) * 100).toFixed(1) : 0;
                       const isGoodMargin = margin >= 0;
